@@ -1,9 +1,17 @@
+// yes i used ai for this, i was super lazy
 import GameAssets, { WorldTexturesEnum } from '../GameAssets';
 import { Engine } from '../Constants';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 import { Camera } from '../classes/game/Camera';
 import QuickText from '../classes/gui/QuickText';
+
+enum CellType {
+    Build = 0,
+    NoBuild = 1,
+    Spawn = 2,
+    PathingObjective = 3,
+}
 
 /**
  * Infinite grid renderer that draws a grid based on camera position and zoom.
@@ -95,9 +103,14 @@ export class MapEditor extends Scene {
     private ticker: PIXI.Ticker;
     private quickText = new QuickText(this.stage);
     private previewSprite: PIXI.Sprite;
+    private selectedTexture: WorldTexturesEnum = 0;
+    private selectedTextureIndex: number = 0;
+    private placedMapCells = [];
 
     private qt1: any;
     private qt2: any;
+    private qt3: any;
+    private qt4: any;
 
     public init() {
         this.mapContainer = new PIXI.Container();
@@ -108,14 +121,15 @@ export class MapEditor extends Scene {
         this.ticker = new PIXI.Ticker();
         this.ticker.maxFPS = 60;
         this.ticker.minFPS = 30;
-
         this.qt1 = this.quickText.new('x', 'red');
         this.qt2 = this.quickText.new('y', 'lightgreen');
+        this.qt3 = this.quickText.new('x', 'lightblue');
+        this.qt4 = this.quickText.new('y', 'orange');
 
         let originMarker = new PIXI.Text({
             x: 0,
             y: 0,
-            zIndex: 5,
+            zIndex: 4,
             text: '0',
             style: {
                 fill: 'red',
@@ -131,10 +145,11 @@ export class MapEditor extends Scene {
         originMarker.x = -originMarker.width / 2;
         originMarker.y = -originMarker.height / 2;
         console.log(GameAssets.WorldTextures[WorldTexturesEnum.TexturedGrass].textures);
-        this.previewSprite = new PIXI.Sprite(GameAssets.WorldTextures[WorldTexturesEnum.TexturedGrass].textures[2]);
+        this.previewSprite = new PIXI.Sprite(
+            GameAssets.WorldTextures[this.selectedTexture].textures[this.selectedTextureIndex]
+        );
         this.previewSprite.width = Engine.GridCellSize * Engine.SpriteScale;
         this.previewSprite.height = Engine.GridCellSize * Engine.SpriteScale;
-        this.previewSprite.zIndex = 5;
         this.mapContainer.addChild(this.previewSprite);
 
         this.ticker.add((t) => {
@@ -143,6 +158,7 @@ export class MapEditor extends Scene {
             this.update(t.deltaMS);
         });
         this.ticker.start();
+        Engine.app.canvas.addEventListener('pointerup', this.onPointerUp);
     }
     public destroy() {
         this.stage.destroy();
@@ -150,6 +166,7 @@ export class MapEditor extends Scene {
         this.gui.forEach((element) => {
             element.destroy();
         });
+        Engine.app.canvas.removeEventListener('pointerdown', this.onPointerUp);
         this.camera.destroy();
         this.ticker.stop();
         this.ticker.destroy();
@@ -158,9 +175,6 @@ export class MapEditor extends Scene {
         // Convert global mouse to world (map) coordinates
         const mousePos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
 
-        this.qt1.setCaption('MouseX = ' + Math.round(mousePos.x));
-        this.qt2.setCaption('MouseY = ' + Math.round(mousePos.y));
-
         // Use raw grid size in world units (not scaled twice)
         const cellSize = Engine.GridCellSize * Engine.SpriteScale;
 
@@ -168,6 +182,68 @@ export class MapEditor extends Scene {
         const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
         const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
 
+        this.qt1.setCaption('x = ' + snappedX / (Engine.GridCellSize * Engine.SpriteScale));
+        this.qt2.setCaption('y = ' + snappedY / (Engine.GridCellSize * Engine.SpriteScale));
+
+        let snappedPoint = new PIXI.Point(
+            snappedX / (Engine.GridCellSize * Engine.SpriteScale),
+            snappedY / (Engine.GridCellSize * Engine.SpriteScale)
+        );
+
+        let cell = this.getCellByPoint(snappedPoint);
+        if (cell != undefined) {
+            this.qt3.setCaption(`tex: ${WorldTexturesEnum[cell.texture].toString()}, idx: ${cell.textureIndex}`);
+            this.qt4.setCaption(`type: ` + CellType[cell.type].toString());
+        } else {
+            this.qt3.setCaption('');
+            this.qt4.setCaption('');
+        }
+
         this.previewSprite.position.set(snappedX, snappedY);
     }
+
+    private getCellByPoint(point) {
+        return this.placedMapCells.find((v) => v.x == point.x && v.y == point.y);
+    }
+    // NOTE: this MUST be an arrow function.
+    private onPointerUp = (event: PointerEvent) => {
+        if (event.button == 2 || !this.ticker) return;
+        // Convert global screen mouse position to world position
+        const worldPos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
+
+        const cellSize = Engine.GridCellSize * Engine.SpriteScale;
+
+        // Snap position to grid
+        const snappedX = Math.floor(worldPos.x / cellSize) * cellSize;
+        const snappedY = Math.floor(worldPos.y / cellSize) * cellSize;
+
+        // Create a new sprite and place it at the snapped position
+        const newSprite = new PIXI.Sprite(
+            GameAssets.WorldTextures[this.selectedTexture].textures[this.selectedTextureIndex]
+        );
+        newSprite.position.set(snappedX, snappedY);
+        newSprite.width = cellSize;
+        newSprite.height = cellSize;
+
+        let snappedPoint = new PIXI.Point(
+            snappedX / (Engine.GridCellSize * Engine.SpriteScale),
+            snappedY / (Engine.GridCellSize * Engine.SpriteScale)
+        );
+
+        let cell = this.getCellByPoint(snappedPoint);
+        console.log(cell);
+        if (cell != undefined) {
+        } else {
+            this.placedMapCells.push({
+                x: snappedPoint.x,
+                y: snappedPoint.y,
+                texture: this.selectedTexture,
+                textureIndex: this.selectedTextureIndex,
+                type: CellType.Build,
+            });
+        }
+        console.log(this.placedMapCells);
+
+        this.mapContainer.addChild(newSprite);
+    };
 }
