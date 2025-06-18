@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { Engine } from './Constants';
 import Assets from './GameAssets';
 import { MainScene } from './scenes/MainScene';
+import { KeyboardManager } from './classes/game/managers/KeyboardManager';
 
 (async () => {
     const app = new PIXI.Application();
@@ -66,17 +67,15 @@ import { MainScene } from './scenes/MainScene';
     await Assets.LoadAssets();
     globalThis.GameAssets = Assets;
     // GameUIConstants.init();
-    // KeyboardManager.init();
+    Engine.KeyboardManager = new KeyboardManager();
     // new GameMaster();
     // Engine.AnimationManager = new AnimationManager();
     // Engine.NotificationManager = new NotificationManager();
     // Engine.DebrisManager = new DebrisManager();
     // globalThis.Engine = Engine;
-    // PIXI.Ticker.shared.add((ticker) => {
-    //     Engine.NotificationManager.update(ticker.elapsedMS);
-    //     Engine.AnimationManager.update(ticker.elapsedMS);
-    //     Engine.DebrisManager.update(ticker.elapsedMS);
-    // });
+    PIXI.Ticker.shared.add((ticker) => {
+        Engine.KeyboardManager.update();
+    });
     app.canvas.addEventListener('pointermove', function (event) {
         Engine.MouseX = ((event.clientX - app.canvas.offsetLeft) / app.canvas.offsetWidth) * 1920;
         Engine.MouseY = ((event.clientY - app.canvas.offsetTop) / app.canvas.offsetHeight) * 1080;

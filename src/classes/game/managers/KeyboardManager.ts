@@ -43,6 +43,8 @@ export class KeyboardManager {
     private readonly listenersDown = new Map<string, Listener[]>();
     private readonly listenersUp = new Map<string, Listener[]>();
 
+    private isDisabled: boolean = false;
+
     constructor() {
         window.addEventListener('keydown', this.handleKeyDown, false);
         window.addEventListener('keyup', this.handleKeyUp, false);
@@ -62,6 +64,10 @@ export class KeyboardManager {
 
     public isKeyReleased(keyCode: string): boolean {
         return this.keysReleased.has(keyCode);
+    }
+
+    public setDisabled(bool) {
+        this.isDisabled = bool;
     }
 
     public update(): void {
@@ -140,6 +146,7 @@ export class KeyboardManager {
     }
 
     private _dispatch(type: KeyEventType, key: string, e: KeyboardEvent): void {
+        if (this.isDisabled) return;
         const map = type === 'down' ? this.listenersDown : this.listenersUp;
         const listeners = map.get(key);
         if (!listeners?.length) return;

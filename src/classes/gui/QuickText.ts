@@ -21,7 +21,7 @@ export default class QuickText {
     }
 }
 
-class QTObject extends GuiObject {
+export class QTObject extends GuiObject {
     public _t: PIXI.Text;
     constructor(caption, color, parent) {
         super(false);

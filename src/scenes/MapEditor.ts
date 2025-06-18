@@ -4,7 +4,7 @@ import { Engine } from '../Constants';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 import { Camera } from '../classes/game/Camera';
-import QuickText from '../classes/gui/QuickText';
+import QuickText, { QTObject } from '../classes/gui/QuickText';
 
 enum CellType {
     Build = 0,
@@ -101,16 +101,20 @@ export class MapEditor extends Scene {
     private camera: Camera;
     private placementGrid: PlacementGrid = new PlacementGrid();
     private ticker: PIXI.Ticker;
-    private quickText = new QuickText(this.stage);
     private previewSprite: PIXI.Sprite;
     private selectedTexture: WorldTexturesEnum = 0;
     private selectedTextureIndex: number = 0;
     private placedMapCells = [];
 
-    private qt1: any;
-    private qt2: any;
-    private qt3: any;
-    private qt4: any;
+    private qtCellPreviewEnabled: QTObject;
+    private qtPlacingEnabled: QTObject;
+    private qtMouseX: QTObject;
+    private qtMouseY: QTObject;
+    private qtCellInfo: QTObject;
+    private qtCellType: QTObject;
+
+    private cfgPreviewEnabled = true;
+    private cfgPlacingEnabled = false;
 
     public init() {
         this.mapContainer = new PIXI.Container();
@@ -121,19 +125,22 @@ export class MapEditor extends Scene {
         this.ticker = new PIXI.Ticker();
         this.ticker.maxFPS = 60;
         this.ticker.minFPS = 30;
-        this.qt1 = this.quickText.new('x', 'red');
-        this.qt2 = this.quickText.new('y', 'lightgreen');
-        this.qt3 = this.quickText.new('x', 'lightblue');
-        this.qt4 = this.quickText.new('y', 'orange');
+
+        this.qtCellPreviewEnabled = this.quickText.new('preview: true', 'white');
+        this.qtPlacingEnabled = this.quickText.new('placing: false', 'white');
+        this.qtMouseX = this.quickText.new('x', 'red');
+        this.qtMouseY = this.quickText.new('y', 'lightgreen');
+        this.qtCellInfo = this.quickText.new('x', 'lightblue');
+        this.qtCellType = this.quickText.new('y', 'orange');
 
         let originMarker = new PIXI.Text({
             x: 0,
             y: 0,
             zIndex: 4,
-            text: '0',
+            text: 'origin',
             style: {
                 fill: 'red',
-                fontSize: 9,
+                fontSize: 16,
                 fontWeight: 'bold',
                 stroke: {
                     color: 0xffffff,
@@ -158,7 +165,43 @@ export class MapEditor extends Scene {
             this.update(t.deltaMS);
         });
         this.ticker.start();
+
         Engine.app.canvas.addEventListener('pointerup', this.onPointerUp);
+
+        Engine.KeyboardManager.onKeyUp(
+            'KeyA',
+            () => {
+                this.cfgPreviewEnabled = !this.cfgPreviewEnabled;
+                this.qtCellPreviewEnabled.setCaption('preview: ' + this.cfgPreviewEnabled);
+            },
+            10
+        );
+
+        Engine.KeyboardManager.onKeyUp(
+            'KeyS',
+            () => {
+                this.cfgPlacingEnabled = !this.cfgPlacingEnabled;
+                this.qtPlacingEnabled.setCaption('placing: ' + this.cfgPlacingEnabled);
+            },
+            10
+        );
+
+        Engine.KeyboardManager.onKeyUp(
+            'KeyF',
+            () => {
+                Engine.KeyboardManager.setDisabled(true);
+                this.camera.enableMousePanning(false);
+                Engine.createModal({
+                    title: 'Picker',
+                    content: '<input>',
+                    onClose: () => {
+                        Engine.KeyboardManager.setDisabled(false);
+                        this.camera.enableMousePanning(true);
+                    },
+                });
+            },
+            10
+        );
     }
     public destroy() {
         this.stage.destroy();
@@ -182,21 +225,27 @@ export class MapEditor extends Scene {
         const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
         const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
 
-        this.qt1.setCaption('x = ' + snappedX / (Engine.GridCellSize * Engine.SpriteScale));
-        this.qt2.setCaption('y = ' + snappedY / (Engine.GridCellSize * Engine.SpriteScale));
+        this.qtMouseX.setCaption('x = ' + snappedX / (Engine.GridCellSize * Engine.SpriteScale));
+        this.qtMouseY.setCaption('y = ' + snappedY / (Engine.GridCellSize * Engine.SpriteScale));
 
         let snappedPoint = new PIXI.Point(
             snappedX / (Engine.GridCellSize * Engine.SpriteScale),
             snappedY / (Engine.GridCellSize * Engine.SpriteScale)
         );
 
+        if (this.cfgPreviewEnabled) {
+            this.previewSprite.alpha = 1;
+        } else {
+            this.previewSprite.alpha = 0;
+        }
+
         let cell = this.getCellByPoint(snappedPoint);
         if (cell != undefined) {
-            this.qt3.setCaption(`tex: ${WorldTexturesEnum[cell.texture].toString()}, idx: ${cell.textureIndex}`);
-            this.qt4.setCaption(`type: ` + CellType[cell.type].toString());
+            this.qtCellInfo.setCaption(`tex: ${WorldTexturesEnum[cell.texture].toString()}, idx: ${cell.textureIndex}`);
+            this.qtCellType.setCaption(`type: ` + CellType[cell.type].toString());
         } else {
-            this.qt3.setCaption('');
-            this.qt4.setCaption('');
+            this.qtCellInfo.setCaption('');
+            this.qtCellType.setCaption('');
         }
 
         this.previewSprite.position.set(snappedX, snappedY);
@@ -207,7 +256,7 @@ export class MapEditor extends Scene {
     }
     // NOTE: this MUST be an arrow function.
     private onPointerUp = (event: PointerEvent) => {
-        if (event.button == 2 || !this.ticker) return;
+        if (event.button == 2 || !this.cfgPlacingEnabled) return;
         // Convert global screen mouse position to world position
         const worldPos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
 
@@ -233,6 +282,14 @@ export class MapEditor extends Scene {
         let cell = this.getCellByPoint(snappedPoint);
         console.log(cell);
         if (cell != undefined) {
+            let idx = this.placedMapCells.indexOf(cell);
+            this.placedMapCells[idx] = {
+                x: snappedPoint.x,
+                y: snappedPoint.y,
+                texture: this.selectedTexture,
+                textureIndex: this.selectedTextureIndex,
+                type: CellType.Build,
+            };
         } else {
             this.placedMapCells.push({
                 x: snappedPoint.x,
