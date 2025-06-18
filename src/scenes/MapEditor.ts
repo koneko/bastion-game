@@ -17,8 +17,8 @@ export class PlacementGrid {
     constructor() {
         this.graphics = new PIXI.Graphics();
         this.cellSize = Engine.GridCellSize * Engine.SpriteScale;
-        this.color = 0xfff;
-        this.lineAlpha = 1;
+        this.color = 0xffffff;
+        this.lineAlpha = 0.5;
     }
 
     /**
@@ -38,30 +38,29 @@ export class PlacementGrid {
         const zoom = cameraContainer.scale.x;
         const pos = cameraContainer.position;
 
-        const cell = this.cellSize * zoom;
-        const offsetX = pos.x % cell;
-        const offsetY = pos.y % cell;
+        const cell = this.cellSize;
 
-        const cols = Math.ceil(viewportWidth / cell) + 2;
-        const rows = Math.ceil(viewportHeight / cell) + 2;
+        // Convert screen bounds to world coordinates
+        const left = -pos.x / zoom;
+        const top = -pos.y / zoom;
+        const right = left + viewportWidth / zoom;
+        const bottom = top + viewportHeight / zoom;
 
-        this.graphics.clear();
-        let style = {
-            width: 1,
-            color: 0xfff,
-            alpha: 0.3,
-            alignment: 0.5,
-            cap: 'butt',
-            join: 'miter',
-        };
+        // Find start positions snapped to cell size
+        const startX = Math.floor(left / cell) * cell;
+        const startY = Math.floor(top / cell) * cell;
 
-        for (let i = 0; i < cols; i++) {
-            const x = i * cell - offsetX;
-            this.graphics.moveTo(x, 0);
-            this.graphics.lineTo(x, viewportHeight).stroke({
-                width: 1,
-                color: 0x00ff00,
-                alpha: 0.3,
+        const cols = Math.ceil((right - startX) / cell);
+        const rows = Math.ceil((bottom - startY) / cell);
+
+        this.graphics.clear(); // Clear before drawing
+        for (let i = 0; i <= cols; i++) {
+            const x = startX + i * cell;
+            this.graphics.moveTo(x, top);
+            this.graphics.lineTo(x, bottom).stroke({
+                width: 1 / zoom, // This keeps the grid line thin when zoomed
+                color: this.color,
+                alpha: this.lineAlpha,
                 alignment: 0.5,
                 cap: 'butt',
                 join: 'miter',
@@ -69,19 +68,23 @@ export class PlacementGrid {
             });
         }
 
-        for (let j = 0; j < rows; j++) {
-            const y = j * cell - offsetY;
-            this.graphics.moveTo(0, y);
-            this.graphics.lineTo(viewportWidth, y).stroke({
-                width: 1,
-                color: 0x00ff00,
-                alpha: 0.3,
+        for (let j = 0; j <= rows; j++) {
+            const y = startY + j * cell;
+            this.graphics.moveTo(left, y);
+            this.graphics.lineTo(right, y).stroke({
+                width: 1 / zoom,
+                color: this.color,
+                alpha: this.lineAlpha,
                 alignment: 0.5,
                 cap: 'butt',
                 join: 'miter',
                 pixelLine: true,
             });
         }
+
+        // DO NOT scale graphics manually — it's in world space
+        this.graphics.position.set(0, 0);
+        this.graphics.scale.set(1, 1);
     }
 }
 
@@ -101,7 +104,7 @@ export class MapEditor extends Scene {
         this.stage.addChild(this.mapContainer);
         this.camera = new Camera(this.mapContainer);
         this.camera.enableMousePanning(true);
-        this.stage.addChild(this.placementGrid.view);
+        this.mapContainer.addChild(this.placementGrid.view);
         this.ticker = new PIXI.Ticker();
         this.ticker.maxFPS = 60;
         this.ticker.minFPS = 30;
@@ -151,19 +154,20 @@ export class MapEditor extends Scene {
         this.ticker.stop();
         this.ticker.destroy();
     }
-    public update(deltaMS) {
+    public update(deltaMS: number) {
+        // Convert global mouse to world (map) coordinates
         const mousePos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
+
         this.qt1.setCaption('MouseX = ' + Math.round(mousePos.x));
         this.qt2.setCaption('MouseY = ' + Math.round(mousePos.y));
-        let snapped = new PIXI.Point(
-            Math.floor((mousePos.x / Engine.GridCellSize) * Engine.SpriteScale) *
-                Engine.GridCellSize *
-                Engine.SpriteScale,
-            Math.floor((mousePos.y / Engine.GridCellSize) * Engine.SpriteScale) *
-                Engine.GridCellSize *
-                Engine.SpriteScale
-        );
-        this.previewSprite.x = snapped.x;
-        this.previewSprite.y = snapped.y;
+
+        // Use raw grid size in world units (not scaled twice)
+        const cellSize = Engine.GridCellSize * Engine.SpriteScale;
+
+        // Snap preview sprite to grid-aligned world position
+        const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
+        const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
+
+        this.previewSprite.position.set(snappedX, snappedY);
     }
 }
