@@ -343,10 +343,7 @@ export class MapEditor extends Scene {
                     <p>end:</p>
                     <input id='x2' style="width:40px;margin-right:5px;">x<br>
                     <input id='y2' style="width:40px;margin-right:5px;">y<br>
-                    <p>filling will use <select id='texture'>${textures.join(
-                        ''
-                    )}</select><input id='textureIndex' style="width:40px;"></p>
-                    <button onclick='javascript:Engine.currentScene.fillCells()'>---FILL--</button>
+                    <button onclick='javascript:Engine.currentScene.fillCells()'>fill with currently selected options</button>
                     `,
                     onClose: () => {
                         Engine.KeyboardManager.setDisabled(false);
@@ -470,7 +467,10 @@ export class MapEditor extends Scene {
             }
         } else {
             let cell = this.getCellByPoint(point);
-            if (cell == undefined) return console.warn('Cell must have background in order to place prop onto it.');
+            if (cell == undefined || cell.props.find((c) => c.propTexture == texture))
+                return console.warn(
+                    'Cell must have background and must not be duplicate in order to place prop onto it.'
+                );
             cell.props.push({
                 propTexture: texture,
                 propTextureIndex: textureIndex,
@@ -499,61 +499,16 @@ export class MapEditor extends Scene {
             snappedX / (Engine.GridCellSize * Engine.SpriteScale),
             snappedY / (Engine.GridCellSize * Engine.SpriteScale)
         );
-
+        let tex, textureIndex;
         if (this.cfgPlacingModeIsBg) {
-            let cell = this.getCellByPoint(snappedPoint);
-            console.log(cell);
-            if (cell != undefined) {
-                let idx = this.placedMapCells.indexOf(cell);
-                cell.editorSprite.texture =
-                    GameAssets.WorldTextures[this.selectedBackgroundTexture].textures[
-                        this.selectedBackgroundTextureIndex
-                    ];
-                this.placedMapCells[idx] = {
-                    x: snappedPoint.x,
-                    y: snappedPoint.y,
-                    backgroundTexture: this.selectedBackgroundTexture,
-                    backgroundTextureIndex: this.selectedBackgroundTextureIndex,
-                    type: CellType.Build,
-                    props: cell.props,
-                    editorSprite: cell.editorSprite,
-                };
-            } else {
-                const newSprite = new PIXI.Sprite(
-                    GameAssets.WorldTextures[this.selectedBackgroundTexture].textures[
-                        this.selectedBackgroundTextureIndex
-                    ]
-                );
-                this.placedMapCells.push({
-                    x: snappedPoint.x,
-                    y: snappedPoint.y,
-                    backgroundTexture: this.selectedBackgroundTexture,
-                    backgroundTextureIndex: this.selectedBackgroundTextureIndex,
-                    type: CellType.Build,
-                    props: [],
-                    editorSprite: newSprite,
-                });
-                newSprite.position.set(snappedX, snappedY);
-                newSprite.width = cellSize;
-                newSprite.height = cellSize;
-                this.mapContainer.addChild(newSprite);
-            }
+            tex = this.selectedBackgroundTexture;
+            textureIndex = this.selectedBackgroundTextureIndex;
         } else {
-            let cell = this.getCellByPoint(snappedPoint);
-            if (cell == undefined) return console.warn('Cell must have background in order to place prop onto it.');
-            cell.props.push({
-                propTexture: this.selectedPropTexture,
-                propTextureIndex: this.selectedPropTextureIndex,
-                tint: 0xffffff,
-            });
-            const propSprite = new PIXI.Sprite(
-                GameAssets.WorldTextures[this.selectedPropTexture].textures[this.selectedPropTextureIndex]
-            );
-            propSprite.position.set(snappedX, snappedY);
-            propSprite.width = cellSize;
-            propSprite.height = cellSize;
-            this.mapContainer.addChild(propSprite);
+            tex = this.selectedPropTexture;
+            textureIndex = this.selectedPropTextureIndex;
         }
+
+        this.createCell(snappedPoint, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
     };
     public modalSelectTexture() {
         const element: any = document.getElementById('texture-selector');
@@ -566,7 +521,7 @@ export class MapEditor extends Scene {
             this.selectedBackgroundTexture = num;
             document.getElementById('backgroundTexture').textContent = WorldTexturesEnum[num].toString();
         }
-        const howMany = GameAssets.WorldTextures[num].textures.length - 1;
+        const howMany = GameAssets.WorldTextures[num].textures.length;
         document.getElementById('index-selector').innerHTML = '';
         for (let i = 0; i < howMany; i++) {
             document.getElementById('index-selector').innerHTML += `<option value='${i}'>${i}</option>`;
@@ -598,31 +553,24 @@ export class MapEditor extends Scene {
 
         const cellSize = Engine.GridCellSize * Engine.SpriteScale;
 
-        const x1num = parseInt(x1.value) * cellSize;
-        const y1num = parseInt(y1.value) * cellSize;
-        const x2num = parseInt(x2.value) * cellSize;
-        const y2num = parseInt(y2.value) * cellSize;
+        const x1num = parseInt(x1.value);
+        const y1num = parseInt(y1.value);
+        const x2num = parseInt(x2.value);
+        const y2num = parseInt(y2.value);
 
-        for (let i = x1num; i < x2num; i += cellSize) {
-            for (let j = y1num; j < y2num; j += cellSize) {
-                const newSprite = new PIXI.Sprite(
-                    GameAssets.WorldTextures[this.selectedBackgroundTexture].textures[
-                        this.selectedBackgroundTextureIndex
-                    ]
-                );
-                this.placedMapCells.push({
-                    x: i,
-                    y: j,
-                    backgroundTexture: this.selectedBackgroundTexture,
-                    backgroundTextureIndex: this.selectedBackgroundTextureIndex,
-                    type: CellType.Build,
-                    props: [],
-                    editorSprite: newSprite,
-                });
-                newSprite.position.set(i, j);
-                newSprite.width = cellSize;
-                newSprite.height = cellSize;
-                this.mapContainer.addChild(newSprite);
+        let tex, textureIndex;
+        if (this.cfgPlacingModeIsBg) {
+            tex = this.selectedBackgroundTexture;
+            textureIndex = this.selectedBackgroundTextureIndex;
+        } else {
+            tex = this.selectedPropTexture;
+            textureIndex = this.selectedPropTextureIndex;
+        }
+
+        for (let i = x1num; i < x2num; i += 1) {
+            for (let j = y1num; j < y2num; j += 1) {
+                let point = new PIXI.Point(i, j);
+                this.createCell(point, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
             }
         }
     }
