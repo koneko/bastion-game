@@ -8,8 +8,8 @@ export class Camera {
     private target: PIXI.Container | null = null;
     private zoomLevel: number = 1;
     private zoomSpeed: number = 0.1;
-    private readonly minZoom = 0.5;
-    private readonly maxZoom = 3;
+    private readonly minZoom = 1; // as much as you can go OUT
+    private readonly maxZoom = 3; // as much as you can go IN
 
     private isFollowingEnabled: boolean = true;
     private isMousePanningEnabled: boolean = false;

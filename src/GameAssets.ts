@@ -85,7 +85,7 @@ export default class GameAssets {
         const t = new PIXI.Text({
             text: 'Loading textures. This might take a while.',
             style: new PIXI.TextStyle({
-                fill: 0x333333,
+                fill: 0xffffff,
                 fontSize: 50,
             }),
         });
@@ -97,7 +97,7 @@ export default class GameAssets {
         this.text = new PIXI.Text({
             text: '',
             style: new PIXI.TextStyle({
-                fill: 0x333333,
+                fill: 0xffffff,
                 fontSize: 50,
             }),
         });

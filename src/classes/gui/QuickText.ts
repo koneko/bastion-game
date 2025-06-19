@@ -30,6 +30,10 @@ export class QTObject extends GuiObject {
             style: new PIXI.TextStyle({
                 fill: color,
                 fontSize: 20,
+                stroke: {
+                    color: 0x000000,
+                    width: 5,
+                },
             }),
         });
         parent.addChild(this._t);

@@ -15,6 +15,23 @@ enum CellType {
     PlayerWall = 5,
 }
 
+type Prop = {
+    propTexture: WorldTexturesEnum;
+    propTextureIndex: number;
+    tint: PIXI.Color;
+    editorSprite: PIXI.Sprite;
+};
+
+type Cell = {
+    x: number;
+    y: number;
+    backgroundTexture: WorldTexturesEnum;
+    backgroundTextureIndex: number;
+    type: CellType;
+    props: Prop[];
+    editorSprite: PIXI.Sprite;
+};
+
 /**
  * Infinite grid renderer that draws a grid based on camera position and zoom.
  */
@@ -99,7 +116,7 @@ export class PlacementGrid {
 }
 
 export class MapEditor extends Scene {
-    private placedMapCells = [];
+    private placedMapCells: Cell[] = [];
     private mapContainer: PIXI.Container = new PIXI.Container();
     private camera: Camera = new Camera(this.mapContainer);
     private placementGrid: PlacementGrid = new PlacementGrid();
@@ -360,7 +377,7 @@ export class MapEditor extends Scene {
         this.gui.forEach((element) => {
             element.destroy();
         });
-        Engine.app.canvas.removeEventListener('pointerdown', this.onPointerUp);
+        Engine.app.canvas.removeEventListener('pointerup', this.onPointerUp);
         this.camera.destroy();
         this.ticker.stop();
         this.ticker.destroy();
@@ -431,6 +448,7 @@ export class MapEditor extends Scene {
         const cellSize = Engine.GridCellSize * Engine.SpriteScale;
         const snappedX = point.x * cellSize;
         const snappedY = point.y * cellSize;
+
         if (isBg) {
             let cell = this.getCellByPoint(point);
             if (cell != undefined) {
@@ -469,18 +487,33 @@ export class MapEditor extends Scene {
             let cell = this.getCellByPoint(point);
             if (cell == undefined || cell.props.find((c) => c.propTexture == texture))
                 return console.warn(
-                    'Cell must have background and must not be duplicate in order to place prop onto it.'
+                    '[MapEditor] Cell must have background and must have same texture prop in order to place prop onto it.'
                 );
+            const propSprite = new PIXI.Sprite(GameAssets.WorldTextures[texture].textures[textureIndex]);
             cell.props.push({
                 propTexture: texture,
                 propTextureIndex: textureIndex,
-                tint: 0xffffff,
+                tint: new PIXI.Color(0xffffff),
+                editorSprite: propSprite,
             });
-            const propSprite = new PIXI.Sprite(GameAssets.WorldTextures[texture].textures[textureIndex]);
             propSprite.position.set(snappedX, snappedY);
             propSprite.width = cellSize;
             propSprite.height = cellSize;
             this.mapContainer.addChild(propSprite);
+        }
+    }
+    private deleteCell(point: PIXI.Point, isBg: boolean) {
+        let cell = this.getCellByPoint(point);
+        if (!cell) return console.log("[MapEditor] Can't delete something that doesn't exist.");
+        if (isBg) {
+            let idx = this.placedMapCells.indexOf(cell);
+            cell.editorSprite.removeFromParent();
+            this.placedMapCells.splice(idx, 1);
+        } else {
+            cell.props.forEach((prop) => {
+                prop.editorSprite.removeFromParent();
+            });
+            cell.props = [];
         }
     }
 
@@ -507,8 +540,9 @@ export class MapEditor extends Scene {
             tex = this.selectedPropTexture;
             textureIndex = this.selectedPropTextureIndex;
         }
-
-        this.createCell(snappedPoint, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
+        let shiftheld = Engine.KeyboardManager.isKeyDown('ShiftLeft');
+        if (!shiftheld) this.createCell(snappedPoint, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
+        else this.deleteCell(snappedPoint, this.cfgPlacingModeIsBg);
     };
     public modalSelectTexture() {
         const element: any = document.getElementById('texture-selector');
@@ -551,8 +585,6 @@ export class MapEditor extends Scene {
         const x2: any = document.getElementById('x2');
         const y2: any = document.getElementById('y2');
 
-        const cellSize = Engine.GridCellSize * Engine.SpriteScale;
-
         const x1num = parseInt(x1.value);
         const y1num = parseInt(y1.value);
         const x2num = parseInt(x2.value);
@@ -569,7 +601,7 @@ export class MapEditor extends Scene {
 
         for (let i = x1num; i < x2num; i += 1) {
             for (let j = y1num; j < y2num; j += 1) {
-                let point = new PIXI.Point(i, j);
+                const point = new PIXI.Point(i, j);
                 this.createCell(point, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
             }
         }
