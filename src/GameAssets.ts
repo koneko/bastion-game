@@ -2,17 +2,65 @@ import * as PIXI from 'pixi.js';
 import { Engine } from './Constants';
 
 export enum WorldTexturesEnum {
-    TexturedGrass = 0,
+    BgTexturedGrass = 0,
+    BgBigTiles = 1,
+    PropsTrees = 2,
+    PropsCliff = 3,
+    PropsRocks = 4,
+    PropsChests = 5,
 }
+
+type WorldTextures = {
+    name: string;
+    rows: number;
+    cols: number;
+    size: number;
+    textures: PIXI.Texture[];
+};
 
 export default class GameAssets {
     public static Button01Texture: PIXI.Texture;
 
-    public static WorldTextures = [
+    public static WorldTextures: WorldTextures[] = [
         {
-            name: 'TexturedGrass',
+            name: 'BgTexturedGrass',
             rows: 2,
             cols: 3,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'BgBigTiles',
+            rows: 10,
+            cols: 10,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'PropsTrees',
+            rows: 1,
+            cols: 4,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'PropsCliff',
+            rows: 9,
+            cols: 7,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'PropsRocks',
+            rows: 4,
+            cols: 3,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'PropsChests',
+            rows: 1,
+            cols: 2,
             size: 16,
             textures: [],
         },
@@ -102,6 +150,7 @@ export default class GameAssets {
             console.log(spritesheet);
             for (let i = 0; i < texture.rows * texture.cols; i++) {
                 this.WorldTextures[textureIndex].textures[i] = spritesheet.textures[i];
+                this.WorldTextures[textureIndex].textures[i].baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
             }
         });
     }

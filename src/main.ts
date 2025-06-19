@@ -8,12 +8,13 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
     const app = new PIXI.Application();
     Engine.app = app;
     await app.init({
-        width: 1920, // Base width
-        height: 1080, // Base height
+        width: 1920,
+        height: 1080,
         resolution: 1,
         autoDensity: true,
         backgroundColor: 0x000,
         sharedTicker: true,
+        roundPixels: true,
     });
 
     document.body.appendChild(app.canvas);
@@ -65,14 +66,13 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
     });
 
     await Assets.LoadAssets();
-    globalThis.GameAssets = Assets;
+    globalThis.Engine = Engine;
     // GameUIConstants.init();
     Engine.KeyboardManager = new KeyboardManager();
     // new GameMaster();
     // Engine.AnimationManager = new AnimationManager();
     // Engine.NotificationManager = new NotificationManager();
     // Engine.DebrisManager = new DebrisManager();
-    // globalThis.Engine = Engine;
     PIXI.Ticker.shared.add((ticker) => {
         Engine.KeyboardManager.update();
     });
@@ -81,9 +81,6 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
         Engine.MouseY = ((event.clientY - app.canvas.offsetTop) / app.canvas.offsetHeight) * 1080;
     });
     Engine.changeScene(new MainScene());
-    // let params = new URLSearchParams(location.href);
-    // if (params.entries().next().value[1] == 'game') Engine.GameMaster.changeScene(new GameScene('The Turn'));
-
     if (Engine.latestCommit != 'DEVELOPMENT')
         window.onbeforeunload = () => {
             return 'You are about to leave.';
