@@ -192,10 +192,10 @@ export class MapEditor extends Scene {
         this.qtCellPreviewEnabled = this.quickText.new('cell preview: enabled', 'lightgreen');
         this.qtCellPlacingEnabled = this.quickText.new('able to place: disabled', 'pink');
         this.qtCellTypePreviewEnabled = this.quickText.new('cell type preview: disabled', 'pink');
-        this.qtMouseX = this.quickText.new('', '#00ff00');
-        this.qtMouseY = this.quickText.new('', '#00ff00');
         this.qtBackgroundIndex = this.quickText.new('', '#00d9ff');
         this.qtPropIndex = this.quickText.new('', '#00d9ff');
+        this.qtMouseX = this.quickText.new('', '#00ff00');
+        this.qtMouseY = this.quickText.new('', '#00ff00');
         this.qtCellInfo = this.quickText.new('', 'lightblue');
         this.qtCellType = this.quickText.new('', 'orange');
         this.qtCellProps = this.quickText.new('', 'cyan');
@@ -251,25 +251,87 @@ export class MapEditor extends Scene {
                 Engine.createModal({
                     title: 'Help menu',
                     content: `
+                        <h1>General info</h1>
                         <p>top left shows some information and changes based on where your mouse is on the world</p>
                         <p>left click is place (if able to place is enabled), right click is pan world view</p>
                         <p><b>(by default able to place is DISABLED)</b></p>
-                        <h3>selecting a different option in any selector will automagically apply your choice</h3>
-                        <p>Q - for current spritesheet, REDUCE index by 1</p>
-                        <p>W - switch placement mode (background or prop)</p>
-                        <p>E - for current spritesheet, INCREASE index by 1</p>
-                        <p>R - quick select index from spritesheet visual modal</p>
-                        <p>A - enable/disable show cell preview</p>
-                        <p>S - enable/disable able to place with Left Click</p>
-                        <p>D - enable/disable show cell types</p>
-                        <p>F - open cell picker</p>
-                        <p>G - cell fill tool (coords top left)</p>
-                        <p>X - show this menu</p>
-                        <p>with able to place enabled:</p>
-                        <p>- <b>SHIFT + Left Click</b> on on a cell DELETES the thing you have clicked</p>
-                        <p><i>it will delete background AND props with bg, just props with props mode</i></p>
-                        <p>- <b>CTRL + Left Click</b> on a cell COPIES its properties (spritesheet, 1st prop)</p>
                         <p>P.S cell type colors are ${colors.join(', ')}</p>
+                        <p><b>selecting a different option in any <select><option>selector</option></select> will automagically apply your choice</b></p>
+                        <h1>Hotkeys</h1>
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>HOTKEY</th>
+      <th>ACTION</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Q</td>
+      <td>Reduce sprite index by 1 for current spritesheet</td>
+    </tr>
+    <tr>
+      <td>W</td>
+      <td>Switch placement mode (background or prop)</td>
+    </tr>
+    <tr>
+      <td>E</td>
+      <td>Increase sprite index by 1 for current spritesheet</td>
+    </tr>
+    <tr>
+      <td>R</td>
+      <td>Quick select sprite index from spritesheet visual modal</td>
+    </tr>
+    <tr>
+      <td>A</td>
+      <td>Enable/disable show cell preview</td>
+    </tr>
+    <tr>
+      <td>S</td>
+      <td>Enable/disable able to place with Left Click</td>
+    </tr>
+    <tr>
+      <td>D</td>
+      <td>Enable/disable show cell types</td>
+    </tr>
+    <tr>
+      <td>F</td>
+      <td>Open cell picker</td>
+    </tr>
+    <tr>
+      <td>G</td>
+      <td>Cell fill tool (coords top left)</td>
+    </tr>
+    <tr>
+      <td>X</td>
+      <td>Show this menu</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+                        <h1>If able to place is enabled</h1>
+                        <table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>ACTION</th>
+      <th>RESULT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>SHIFT + Left Click</b> on a cell</td>
+      <td>
+        Deletes the clicked item<br>
+        <i>Deletes background <b>and</b> props if in background placing mode; only props in props placing mode</i>
+      </td>
+    </tr>
+    <tr>
+      <td><b>CTRL + Left Click</b> on a cell</td>
+      <td>Copies the cell's properties (spritesheet, first prop)</td>
+    </tr>
+  </tbody>
+</table>
                         <h2>GOOD LUCK! PLAY AROUND WITH IT A LITTLE!</h2>
                         `,
                     onClose: () => {
@@ -541,8 +603,8 @@ export class MapEditor extends Scene {
 
         this.qtMouseX.setCaption('x: ' + snappedX / (Engine.GridCellSize * Engine.SpriteScale));
         this.qtMouseY.setCaption('y: ' + snappedY / (Engine.GridCellSize * Engine.SpriteScale));
-        this.qtBackgroundIndex.setCaption('bg: ' + this.selectedBackgroundTextureIndex);
-        this.qtPropIndex.setCaption('prop: ' + this.selectedPropTextureIndex);
+        this.qtBackgroundIndex.setCaption('background sprite idx: ' + this.selectedBackgroundTextureIndex);
+        this.qtPropIndex.setCaption('prop sprite idx: ' + this.selectedPropTextureIndex);
 
         let snappedPoint = new PIXI.Point(
             snappedX / (Engine.GridCellSize * Engine.SpriteScale),
