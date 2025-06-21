@@ -53,17 +53,6 @@ type ExportCell = {
     props: ExportProp[];
 };
 
-function removeCycles() {
-    const seen = new WeakSet();
-    return function (key, value) {
-        if (typeof value === 'object' && value !== null) {
-            if (seen.has(value)) return;
-            seen.add(value);
-        }
-        return value;
-    };
-}
-
 /**
  * Infinite grid renderer that draws a grid based on camera position and zoom.
  */
@@ -239,6 +228,7 @@ export class MapEditor extends Scene {
     }
 
     public StartShortcuts() {
+        // X
         Engine.KeyboardManager.onKeyUp(
             'KeyX',
             () => {
@@ -260,78 +250,78 @@ export class MapEditor extends Scene {
                         <h1>Hotkeys</h1>
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <table border="1" cellpadding="8" cellspacing="0">
-  <thead>
-    <tr>
-      <th>HOTKEY</th>
-      <th>ACTION</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Q</td>
-      <td>Reduce sprite index by 1 for current spritesheet</td>
-    </tr>
-    <tr>
-      <td>W</td>
-      <td>Switch placement mode (background or prop)</td>
-    </tr>
-    <tr>
-      <td>E</td>
-      <td>Increase sprite index by 1 for current spritesheet</td>
-    </tr>
-    <tr>
-      <td>R</td>
-      <td>Quick select sprite index from spritesheet visual modal</td>
-    </tr>
-    <tr>
-      <td>A</td>
-      <td>Enable/disable show cell preview</td>
-    </tr>
-    <tr>
-      <td>S</td>
-      <td>Enable/disable able to place with Left Click</td>
-    </tr>
-    <tr>
-      <td>D</td>
-      <td>Enable/disable show cell types</td>
-    </tr>
-    <tr>
-      <td>F</td>
-      <td>Open cell picker</td>
-    </tr>
-    <tr>
-      <td>G</td>
-      <td>Cell fill tool (coords top left)</td>
-    </tr>
-    <tr>
-      <td>X</td>
-      <td>Show this menu</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-                        <h1>If able to place is enabled</h1>
-                        <table border="1" cellpadding="8" cellspacing="0">
-  <thead>
-    <tr>
-      <th>ACTION</th>
-      <th>RESULT</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><b>SHIFT + Left Click</b> on a cell</td>
-      <td>
-        Deletes the clicked item<br>
-        <i>Deletes background <b>and</b> props if in background placing mode; only props in props placing mode</i>
-      </td>
-    </tr>
-    <tr>
-      <td><b>CTRL + Left Click</b> on a cell</td>
-      <td>Copies the cell's properties (spritesheet, first prop)</td>
-    </tr>
-  </tbody>
-</table>
+                        <thead>
+                            <tr>
+                            <th>HOTKEY</th>
+                            <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td>Q</td>
+                            <td>Reduce sprite index by 1 for current spritesheet</td>
+                            </tr>
+                            <tr>
+                            <td>W</td>
+                            <td>Switch placement mode (background or prop)</td>
+                            </tr>
+                            <tr>
+                            <td>E</td>
+                            <td>Increase sprite index by 1 for current spritesheet</td>
+                            </tr>
+                            <tr>
+                            <td>R</td>
+                            <td>Quick select sprite index from spritesheet visual modal</td>
+                            </tr>
+                            <tr>
+                            <td>A</td>
+                            <td>Enable/disable show cell preview</td>
+                            </tr>
+                            <tr>
+                            <td>S</td>
+                            <td>Enable/disable able to place with Left Click</td>
+                            </tr>
+                            <tr>
+                            <td>D</td>
+                            <td>Enable/disable show cell types</td>
+                            </tr>
+                            <tr>
+                            <td>F</td>
+                            <td>Open cell picker</td>
+                            </tr>
+                            <tr>
+                            <td>G</td>
+                            <td>Cell fill tool (coords top left)</td>
+                            </tr>
+                            <tr>
+                            <td>X</td>
+                            <td>Show this menu</td>
+                            </tr>
+                        </tbody>
+                        </table>
+                        </div>
+                            <h1>If able to place is enabled</h1>
+                            <table border="1" cellpadding="8" cellspacing="0">
+                        <thead>
+                            <tr>
+                            <th>ACTION</th>
+                            <th>RESULT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <td><b>SHIFT + Left Click</b> on a cell</td>
+                            <td>
+                                Deletes the clicked item<br>
+                                <i>Deletes background <b>and</b> props if in background placing mode; only props in props placing mode</i>
+                            </td>
+                            </tr>
+                            <tr>
+                            <td><b>CTRL + Left Click</b> on a cell</td>
+                            <td>Copies the cell's properties (spritesheet, first prop)</td>
+                            </tr>
+                        </tbody>
+                        </table>
                         <h2>GOOD LUCK! PLAY AROUND WITH IT A LITTLE!</h2>
                         `,
                     onClose: () => {
@@ -342,17 +332,7 @@ export class MapEditor extends Scene {
             },
             10
         );
-        Engine.KeyboardManager.onKeyUp(
-            'KeyW',
-            () => {
-                this.cfgPlacingModeIsBg = !this.cfgPlacingModeIsBg;
-                this.qtCellPlacemode.setCaption('placing mode: ' + (this.cfgPlacingModeIsBg ? 'bg' : 'props'));
-                if (this.cfgPlacingModeIsBg) this.qtCellPlacemode.setColor('#f9229c');
-                else this.qtCellPlacemode.setColor('#f6f922');
-            },
-            10
-        );
-
+        // Q
         Engine.KeyboardManager.onKeyUp(
             'KeyQ',
             () => {
@@ -364,6 +344,18 @@ export class MapEditor extends Scene {
             },
             10
         );
+        // W
+        Engine.KeyboardManager.onKeyUp(
+            'KeyW',
+            () => {
+                this.cfgPlacingModeIsBg = !this.cfgPlacingModeIsBg;
+                this.qtCellPlacemode.setCaption('placing mode: ' + (this.cfgPlacingModeIsBg ? 'bg' : 'props'));
+                if (this.cfgPlacingModeIsBg) this.qtCellPlacemode.setColor('#f9229c');
+                else this.qtCellPlacemode.setColor('#f6f922');
+            },
+            10
+        );
+        // E
         Engine.KeyboardManager.onKeyUp(
             'KeyE',
             () => {
@@ -377,6 +369,7 @@ export class MapEditor extends Scene {
             },
             10
         );
+        // R
         Engine.KeyboardManager.onKeyUp(
             'KeyR',
             () => {
@@ -413,7 +406,7 @@ export class MapEditor extends Scene {
             },
             10
         );
-
+        // A
         Engine.KeyboardManager.onKeyUp(
             'KeyA',
             () => {
@@ -426,7 +419,7 @@ export class MapEditor extends Scene {
             },
             10
         );
-
+        // S
         Engine.KeyboardManager.onKeyUp(
             'KeyS',
             () => {
@@ -439,6 +432,35 @@ export class MapEditor extends Scene {
             },
             10
         );
+        // D
+        Engine.KeyboardManager.onKeyUp(
+            'KeyD',
+            () => {
+                this.cfgShowCellType = !this.cfgShowCellType;
+                this.qtCellTypePreviewEnabled.setCaption(
+                    'cell type preview: ' + (this.cfgShowCellType ? 'enabled' : 'disabled')
+                );
+                if (this.cfgShowCellType) this.qtCellTypePreviewEnabled.setColor('lightgreen');
+                else this.qtCellTypePreviewEnabled.setColor('pink');
+                if (this.cfgShowCellType) {
+                    this.editorCells.forEach((item) => {
+                        item.editorSprite.tint = CellTypeEditorColor[item.type];
+                        item.props.forEach((prop) => {
+                            prop.editorSprite.tint = CellTypeEditorColor[item.type];
+                        });
+                    });
+                } else {
+                    this.editorCells.forEach((item) => {
+                        item.editorSprite.tint = '0xffffff';
+                        item.props.forEach((prop) => {
+                            prop.editorSprite.tint = '0xffffff';
+                        });
+                    });
+                }
+            },
+            10
+        );
+        // F
         Engine.KeyboardManager.onKeyUp(
             'KeyF',
             () => {
@@ -502,6 +524,7 @@ export class MapEditor extends Scene {
             },
             10
         );
+        // G
         Engine.KeyboardManager.onKeyUp(
             'KeyG',
             () => {
@@ -548,33 +571,6 @@ export class MapEditor extends Scene {
                         this.camera.enableMousePanning(true);
                     },
                 });
-            },
-            10
-        );
-        Engine.KeyboardManager.onKeyUp(
-            'KeyD',
-            () => {
-                this.cfgShowCellType = !this.cfgShowCellType;
-                this.qtCellTypePreviewEnabled.setCaption(
-                    'cell type preview: ' + (this.cfgShowCellType ? 'enabled' : 'disabled')
-                );
-                if (this.cfgShowCellType) this.qtCellTypePreviewEnabled.setColor('lightgreen');
-                else this.qtCellTypePreviewEnabled.setColor('pink');
-                if (this.cfgShowCellType) {
-                    this.editorCells.forEach((item) => {
-                        item.editorSprite.tint = CellTypeEditorColor[item.type];
-                        item.props.forEach((prop) => {
-                            prop.editorSprite.tint = CellTypeEditorColor[item.type];
-                        });
-                    });
-                } else {
-                    this.editorCells.forEach((item) => {
-                        item.editorSprite.tint = '0xffffff';
-                        item.props.forEach((prop) => {
-                            prop.editorSprite.tint = '0xffffff';
-                        });
-                    });
-                }
             },
             10
         );

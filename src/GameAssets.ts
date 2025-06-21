@@ -24,71 +24,7 @@ type WorldTextures = {
 export default class GameAssets {
     public static Button01Texture: PIXI.Texture;
 
-    public static WorldTextures: WorldTextures[] = [
-        {
-            name: 'BgTexturedGrass',
-            rows: 2,
-            cols: 3,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'BgBigTiles',
-            rows: 10,
-            cols: 10,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'BgDungeon',
-            rows: 12,
-            cols: 16,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'PropsTrees',
-            rows: 1,
-            cols: 4,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'PropsCliff',
-            rows: 9,
-            cols: 7,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'PropsRocks',
-            rows: 4,
-            cols: 3,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'PropsChests',
-            rows: 1,
-            cols: 2,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'PropsTorch',
-            rows: 1,
-            cols: 4,
-            size: 16,
-            textures: [],
-        },
-        {
-            name: 'PropsEnemyPortal',
-            rows: 1,
-            cols: 9,
-            size: 16,
-            textures: [],
-        },
-    ];
+    public static WorldTextures: WorldTextures[] = [];
 
     private static text;
     private static counter = 0;
@@ -141,40 +77,56 @@ export default class GameAssets {
     }
 
     private static async LoadWorld() {
-        await this.WorldTextures.forEach(async (texture, textureIndex) => {
-            const webTexture = await this.Load(`./assets/world/${texture.name}.png`);
-            console.log(webTexture);
+        let worldTextures = Object.keys(WorldTexturesEnum).filter((item) => {
+            return isNaN(Number(item));
+        });
+        worldTextures.forEach((texture) => {
+            this.WorldTextures.push({
+                name: texture,
+                rows: 0,
+                cols: 0,
+                size: 16,
+                textures: [],
+            });
+        });
+        await worldTextures.forEach(async (name, idx) => {
+            const webTexture = await this.Load(`./assets/world/${name}.png`);
+            const textureSize = 16;
+            const textureRows = webTexture.orig.height / textureSize;
+            const textureCols = webTexture.orig.width / textureSize;
+            this.WorldTextures[idx].rows = textureRows;
+            this.WorldTextures[idx].cols = textureCols;
             let frames = {};
-            for (let rows = 0; rows < texture.rows; rows++) {
-                for (let cols = 0; cols < texture.cols; cols++) {
-                    frames[rows * texture.cols + cols] = {
-                        frame: { x: cols * texture.size, y: rows * texture.size, w: texture.size, h: texture.size },
+            for (let rows = 0; rows < textureRows; rows++) {
+                for (let cols = 0; cols < textureCols; cols++) {
+                    frames[rows * textureCols + cols] = {
+                        frame: { x: cols * textureSize, y: rows * textureSize, w: textureSize, h: textureSize },
                         rotated: false,
                         trimmed: false,
                         spriteSourceSize: {
-                            x: cols * texture.size,
-                            y: rows * texture.size,
-                            w: texture.size,
-                            h: texture.size,
+                            x: cols * textureSize,
+                            y: rows * textureSize,
+                            w: textureSize,
+                            h: textureSize,
                         },
-                        sourceSize: { w: texture.size, h: texture.size },
+                        sourceSize: { w: textureSize, h: textureSize },
                     };
                 }
             }
             const spritesheet = new PIXI.Spritesheet(webTexture, {
                 frames,
                 meta: {
-                    image: `./assets/creeps/${texture.name}/spritesheet.png`,
+                    image: `./assets/creeps/${name}/spritesheet.png`,
                     format: 'RGBA8888',
                     size: { w: webTexture.frame.width, h: webTexture.frame.height },
                     scale: '1',
                 },
             });
             await spritesheet.parse();
-            for (let i = 0; i < texture.rows * texture.cols; i++) {
-                this.WorldTextures[textureIndex].textures[i] = spritesheet.textures[i];
+            for (let i = 0; i < textureRows * textureCols; i++) {
+                this.WorldTextures[idx].textures[i] = spritesheet.textures[i];
                 // even though this is "DEPRECATED", i cant find any other way to enable smooth scaling
-                this.WorldTextures[textureIndex].textures[i].baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+                this.WorldTextures[idx].textures[i].baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
             }
         });
     }
