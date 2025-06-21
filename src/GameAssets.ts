@@ -4,10 +4,13 @@ import { Engine } from './Constants';
 export enum WorldTexturesEnum {
     BgTexturedGrass = 0,
     BgBigTiles = 1,
-    PropsTrees = 2,
-    PropsCliff = 3,
-    PropsRocks = 4,
-    PropsChests = 5,
+    BgDungeon = 2,
+    PropsTrees = 3,
+    PropsCliff = 4,
+    PropsRocks = 5,
+    PropsChests = 6,
+    PropsTorch = 7,
+    PropsEnemyPortal = 8,
 }
 
 type WorldTextures = {
@@ -33,6 +36,13 @@ export default class GameAssets {
             name: 'BgBigTiles',
             rows: 10,
             cols: 10,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'BgDungeon',
+            rows: 12,
+            cols: 16,
             size: 16,
             textures: [],
         },
@@ -64,12 +74,26 @@ export default class GameAssets {
             size: 16,
             textures: [],
         },
+        {
+            name: 'PropsTorch',
+            rows: 1,
+            cols: 4,
+            size: 16,
+            textures: [],
+        },
+        {
+            name: 'PropsEnemyPortal',
+            rows: 1,
+            cols: 9,
+            size: 16,
+            textures: [],
+        },
     ];
 
     private static text;
     private static counter = 0;
     private static async Load(src) {
-        this.text.text = `Loading asset: ${src} (${this.counter}/2)`;
+        this.text.text = `Loading asset: ${src} (${this.counter}/${1 + this.WorldTextures.length})`;
         this.counter++;
         return await PIXI.Assets.load({
             src: src,
@@ -119,6 +143,7 @@ export default class GameAssets {
     private static async LoadWorld() {
         await this.WorldTextures.forEach(async (texture, textureIndex) => {
             const webTexture = await this.Load(`./assets/world/${texture.name}.png`);
+            console.log(webTexture);
             let frames = {};
             for (let rows = 0; rows < texture.rows; rows++) {
                 for (let cols = 0; cols < texture.cols; cols++) {

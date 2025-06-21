@@ -667,6 +667,7 @@ export class MapEditor extends Scene {
             if (cell != undefined) {
                 let idx = this.editorCells.indexOf(cell);
                 cell.editorSprite.texture = GameAssets.WorldTextures[texture].textures[textureIndex];
+                if (this.cfgShowCellType) cell.editorSprite.tint = CellTypeEditorColor[type];
                 this.editorCells[idx] = {
                     x: point.x,
                     y: point.y,
@@ -863,8 +864,8 @@ export class MapEditor extends Scene {
             textureIndex = this.selectedPropTextureIndex;
         }
 
-        for (let i = x1num; i < x2num; i += 1) {
-            for (let j = y1num; j < y2num; j += 1) {
+        for (let i = x1num; i <= x2num; i += 1) {
+            for (let j = y1num; j <= y2num; j += 1) {
                 const point = new PIXI.Point(i, j);
                 this.createCell(point, this.cfgPlacingModeIsBg, parseInt(cellType.value), tex, textureIndex);
             }
