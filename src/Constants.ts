@@ -40,6 +40,7 @@ export class Engine {
     public static createModal({ title = 'Modal Title', content = '', onClose = null } = {}) {
         // Create backdrop
         const backdrop = document.createElement('div');
+        backdrop.id = 'modal-backdrop';
         backdrop.style.position = 'fixed';
         backdrop.style.top = '0';
         backdrop.style.left = '0';
@@ -57,8 +58,8 @@ export class Engine {
         modal.style.padding = '1.5rem';
         modal.style.borderRadius = '8px';
         modal.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.4)';
-        modal.style.maxWidth = '400px';
-        modal.style.width = '100%';
+        modal.style.maxWidth = '1200px';
+        modal.style.minWidth = '400px';
         modal.style.textAlign = 'center';
 
         // Add title

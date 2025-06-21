@@ -41,4 +41,7 @@ export class QTObject extends GuiObject {
     public setCaption(caption) {
         this._t.text = caption;
     }
+    public setColor(color) {
+        this._t.style.fill = color;
+    }
 }

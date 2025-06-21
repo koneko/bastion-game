@@ -119,7 +119,6 @@ export default class GameAssets {
     private static async LoadWorld() {
         await this.WorldTextures.forEach(async (texture, textureIndex) => {
             const webTexture = await this.Load(`./assets/world/${texture.name}.png`);
-            console.log(webTexture);
             let frames = {};
             for (let rows = 0; rows < texture.rows; rows++) {
                 for (let cols = 0; cols < texture.cols; cols++) {
@@ -147,42 +146,11 @@ export default class GameAssets {
                 },
             });
             await spritesheet.parse();
-            console.log(spritesheet);
             for (let i = 0; i < texture.rows * texture.cols; i++) {
                 this.WorldTextures[textureIndex].textures[i] = spritesheet.textures[i];
+                // even though this is "DEPRECATED", i cant find any other way to enable smooth scaling
                 this.WorldTextures[textureIndex].textures[i].baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
             }
         });
     }
-
-    // private static async LoadCreeps() {
-    //     const res = await fetch('./assets/json/Creeps.json');
-    //     const creeps = await res.json();
-    //     this.Creeps = creeps;
-    //     for (let idx = 0; idx < this.Creeps.length; idx++) {
-    //         const creep = this.Creeps[idx];
-    //         const texture = await this.Load(`./assets/creeps/${creep.sprite}_spritesheet.png`);
-    //         for (let i = 0; i < creep.textureArrayLength; i++) {
-    //             const spritesheet = new PIXI.Spritesheet(texture, {
-    //                 frames: {
-    //                     [`${creep.sprite}_${i}.png`]: {
-    //                         frame: { x: i * 128, y: 0, w: 128, h: 128 },
-    //                         rotated: false,
-    //                         trimmed: false,
-    //                         spriteSourceSize: { x: 0, y: 0, w: 128, h: 128 },
-    //                         sourceSize: { w: 128, h: 128 },
-    //                     },
-    //                 },
-    //                 meta: {
-    //                     image: `./assets/creeps/${creep.sprite}/spritesheet.png`,
-    //                     format: 'RGBA8888',
-    //                     size: { w: 128 * creep.textureArrayLength, h: 128 },
-    //                     scale: '1',
-    //                 },
-    //             });
-    //             await spritesheet.parse();
-    //             creep.textures[i] = spritesheet.textures[`${creep.sprite}_${i}.png`];
-    //         }
-    //     }
-    // }
 }

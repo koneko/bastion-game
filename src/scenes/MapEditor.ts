@@ -15,22 +15,54 @@ enum CellType {
     PlayerWall = 5,
 }
 
-type Prop = {
+const CellTypeEditorColor = ['orange', 'red', 'purple', 'cyan', 'blue', 'gray'];
+
+type EditorProp = {
     propTexture: WorldTexturesEnum;
     propTextureIndex: number;
     tint: PIXI.Color;
+    animated: boolean;
+    animationTextures: number[];
     editorSprite: PIXI.Sprite;
 };
 
-type Cell = {
+type EditorCell = {
     x: number;
     y: number;
     backgroundTexture: WorldTexturesEnum;
     backgroundTextureIndex: number;
     type: CellType;
-    props: Prop[];
+    props: EditorProp[];
     editorSprite: PIXI.Sprite;
 };
+
+type ExportProp = {
+    propTexture: WorldTexturesEnum;
+    propTextureIndex: number;
+    tint: PIXI.Color;
+    animated: boolean;
+    animationTextures: number[];
+};
+
+type ExportCell = {
+    x: number;
+    y: number;
+    backgroundTexture: WorldTexturesEnum;
+    backgroundTextureIndex: number;
+    type: CellType;
+    props: ExportProp[];
+};
+
+function removeCycles() {
+    const seen = new WeakSet();
+    return function (key, value) {
+        if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) return;
+            seen.add(value);
+        }
+        return value;
+    };
+}
 
 /**
  * Infinite grid renderer that draws a grid based on camera position and zoom.
@@ -116,7 +148,7 @@ export class PlacementGrid {
 }
 
 export class MapEditor extends Scene {
-    private placedMapCells: Cell[] = [];
+    private editorCells: EditorCell[] = [];
     private mapContainer: PIXI.Container = new PIXI.Container();
     private camera: Camera = new Camera(this.mapContainer);
     private placementGrid: PlacementGrid = new PlacementGrid();
@@ -129,9 +161,12 @@ export class MapEditor extends Scene {
     private selectedPropTexture: WorldTexturesEnum = WorldTexturesEnum.PropsChests;
     private selectedPropTextureIndex: number = 0;
 
+    private selectedCellType: CellType = 0;
+
     private qtCellPlacemode: QTObject;
-    private qtCellPreviewEnabled: QTObject;
     private qtCellPlacingEnabled: QTObject;
+    private qtCellPreviewEnabled: QTObject;
+    private qtCellTypePreviewEnabled: QTObject;
     private qtBackgroundIndex: QTObject;
     private qtPropIndex: QTObject;
     private qtMouseX: QTObject;
@@ -143,6 +178,7 @@ export class MapEditor extends Scene {
     private cfgPlacingModeIsBg = true;
     private cfgPreviewEnabled = true;
     private cfgPlacingEnabled = false;
+    private cfgShowCellType = false;
 
     public init() {
         this.stage.addChild(this.mapContainer);
@@ -152,9 +188,10 @@ export class MapEditor extends Scene {
         this.ticker.maxFPS = 60;
         this.ticker.minFPS = 30;
 
-        this.qtCellPlacemode = this.quickText.new('mode: bg', 'white');
-        this.qtCellPreviewEnabled = this.quickText.new('preview: true', 'white');
-        this.qtCellPlacingEnabled = this.quickText.new('placing: false', 'white');
+        this.qtCellPlacemode = this.quickText.new('placing mode: bg', '#f9229c');
+        this.qtCellPreviewEnabled = this.quickText.new('cell preview: enabled', 'lightgreen');
+        this.qtCellPlacingEnabled = this.quickText.new('able to place: disabled', 'pink');
+        this.qtCellTypePreviewEnabled = this.quickText.new('cell type preview: disabled', 'pink');
         this.qtMouseX = this.quickText.new('', '#00ff00');
         this.qtMouseY = this.quickText.new('', '#00ff00');
         this.qtBackgroundIndex = this.quickText.new('', '#00d9ff');
@@ -202,20 +239,54 @@ export class MapEditor extends Scene {
     }
 
     public StartShortcuts() {
-        // shortcuts:
-        // Q - for current placement mode, index--
-        // W - switch placement mode (bg or prop)
-        // E - for current placement mode, index++
-        // A - enable/disable preview
-        // S - enable/disable left click placing
-        // D - view more information about selected cell
-        // F - open cell picker
-        // G - cell fill tool
+        Engine.KeyboardManager.onKeyUp(
+            'KeyX',
+            () => {
+                Engine.KeyboardManager.setDisabled(true);
+                this.camera.enableMousePanning(false);
+                let colors = [];
+                CellTypeEditorColor.forEach((c, idx) => {
+                    colors.push(`<span style='color:${c};text-stroke: 2px black;'>${CellType[idx].toString()}</span>`);
+                });
+                Engine.createModal({
+                    title: 'Help menu',
+                    content: `
+                        <p>top left shows some information and changes based on where your mouse is on the world</p>
+                        <p>left click is place (if able to place is enabled), right click is pan world view</p>
+                        <p><b>(by default able to place is DISABLED)</b></p>
+                        <h3>selecting a different option in any selector will automagically apply your choice</h3>
+                        <p>Q - for current spritesheet, REDUCE index by 1</p>
+                        <p>W - switch placement mode (background or prop)</p>
+                        <p>E - for current spritesheet, INCREASE index by 1</p>
+                        <p>R - quick select index from spritesheet visual modal</p>
+                        <p>A - enable/disable show cell preview</p>
+                        <p>S - enable/disable able to place with Left Click</p>
+                        <p>D - enable/disable show cell types</p>
+                        <p>F - open cell picker</p>
+                        <p>G - cell fill tool (coords top left)</p>
+                        <p>X - show this menu</p>
+                        <p>with able to place enabled:</p>
+                        <p>- <b>SHIFT + Left Click</b> on on a cell DELETES the thing you have clicked</p>
+                        <p><i>it will delete background AND props with bg, just props with props mode</i></p>
+                        <p>- <b>CTRL + Left Click</b> on a cell COPIES its properties (spritesheet, 1st prop)</p>
+                        <p>P.S cell type colors are ${colors.join(', ')}</p>
+                        <h2>GOOD LUCK! PLAY AROUND WITH IT A LITTLE!</h2>
+                        `,
+                    onClose: () => {
+                        Engine.KeyboardManager.setDisabled(false);
+                        this.camera.enableMousePanning(true);
+                    },
+                });
+            },
+            10
+        );
         Engine.KeyboardManager.onKeyUp(
             'KeyW',
             () => {
                 this.cfgPlacingModeIsBg = !this.cfgPlacingModeIsBg;
-                this.qtCellPlacemode.setCaption('mode: ' + (this.cfgPlacingModeIsBg ? 'bg' : 'props'));
+                this.qtCellPlacemode.setCaption('placing mode: ' + (this.cfgPlacingModeIsBg ? 'bg' : 'props'));
+                if (this.cfgPlacingModeIsBg) this.qtCellPlacemode.setColor('#f9229c');
+                else this.qtCellPlacemode.setColor('#f6f922');
             },
             10
         );
@@ -244,12 +315,52 @@ export class MapEditor extends Scene {
             },
             10
         );
+        Engine.KeyboardManager.onKeyUp(
+            'KeyR',
+            () => {
+                Engine.KeyboardManager.setDisabled(true);
+                this.camera.enableMousePanning(false);
+                let texturesArray = Object.keys(WorldTexturesEnum).filter((item) => {
+                    return isNaN(Number(item));
+                });
+                let textures = [];
+                texturesArray.forEach((tex, idx) => {
+                    textures.push(`<option value='${idx}'>${tex}</option>`);
+                });
+                Engine.createModal({
+                    title: 'Texture index quick picker',
+                    content: `
+                    <select id='texture-selector' onchange='javascript:Engine.currentScene.modalQuickTexture()'>
+                    <option value="bg">background</option>
+                    <option value="prop">prop</option>
+                    </select><br>
+                    <div id='texture-preview'>
+                    </div>
+                    `,
+                    onClose: () => {
+                        Engine.KeyboardManager.setDisabled(false);
+                        this.camera.enableMousePanning(true);
+                    },
+                });
+                this.modalQuickTexture();
+                if (!this.cfgPlacingModeIsBg) {
+                    let e: any = document.getElementById('texture-selector');
+                    e.value = 'prop';
+                    this.modalQuickTexture();
+                }
+            },
+            10
+        );
 
         Engine.KeyboardManager.onKeyUp(
             'KeyA',
             () => {
                 this.cfgPreviewEnabled = !this.cfgPreviewEnabled;
-                this.qtCellPreviewEnabled.setCaption('preview: ' + this.cfgPreviewEnabled);
+                this.qtCellPreviewEnabled.setCaption(
+                    'cell preview: ' + (this.cfgPreviewEnabled ? 'enabled' : 'disabled')
+                );
+                if (this.cfgPreviewEnabled) this.qtCellPreviewEnabled.setColor('lightgreen');
+                else this.qtCellPreviewEnabled.setColor('pink');
             },
             10
         );
@@ -258,43 +369,14 @@ export class MapEditor extends Scene {
             'KeyS',
             () => {
                 this.cfgPlacingEnabled = !this.cfgPlacingEnabled;
-                this.qtCellPlacingEnabled.setCaption('placing: ' + this.cfgPlacingEnabled);
-            },
-            10
-        );
-
-        Engine.KeyboardManager.onKeyUp(
-            'KeyD',
-            () => {
-                Engine.KeyboardManager.setDisabled(true);
-                this.camera.enableMousePanning(false);
-                const mousePos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
-
-                const cellSize = Engine.GridCellSize * Engine.SpriteScale;
-                const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
-                const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
-
-                this.qtMouseX.setCaption('x = ' + snappedX / (Engine.GridCellSize * Engine.SpriteScale));
-                this.qtMouseY.setCaption('y = ' + snappedY / (Engine.GridCellSize * Engine.SpriteScale));
-
-                let snappedPoint = new PIXI.Point(
-                    snappedX / (Engine.GridCellSize * Engine.SpriteScale),
-                    snappedY / (Engine.GridCellSize * Engine.SpriteScale)
+                this.qtCellPlacingEnabled.setCaption(
+                    'able to place: ' + (this.cfgPlacingEnabled ? 'enabled' : 'disabled')
                 );
-
-                let cell = this.getCellByPoint(snappedPoint);
-                Engine.createModal({
-                    title: 'Manage cell',
-                    content: ``,
-                    onClose: () => {
-                        Engine.KeyboardManager.setDisabled(false);
-                        this.camera.enableMousePanning(true);
-                    },
-                });
+                if (this.cfgPlacingEnabled) this.qtCellPlacingEnabled.setColor('lightgreen');
+                else this.qtCellPlacingEnabled.setColor('pink');
             },
             10
         );
-
         Engine.KeyboardManager.onKeyUp(
             'KeyF',
             () => {
@@ -307,35 +389,54 @@ export class MapEditor extends Scene {
                 texturesArray.forEach((tex, idx) => {
                     textures.push(`<option value='${idx}'>${tex}</option>`);
                 });
+
+                let cellTypesArray = Object.keys(CellType).filter((item) => {
+                    return isNaN(Number(item));
+                });
+                let cellTypes = [];
+                cellTypesArray.forEach((tex, idx) => {
+                    cellTypes.push(`<option value='${idx}'>${tex}</option>`);
+                });
+
                 Engine.createModal({
-                    title: '',
+                    title: 'Texture picker',
                     content: `
-                    <h3>bg: <span id='backgroundTexture'>${WorldTexturesEnum[
-                        this.selectedBackgroundTexture
-                    ].toString()}</span>[<span id='backgroundTextureIndex'>${
-                        this.selectedBackgroundTextureIndex
-                    }</span>]</h3>
-                    <h3>prop: <span id='propTexture'>${WorldTexturesEnum[
-                        this.selectedPropTexture
-                    ].toString()}</span>[<span id='propTextureIndex'>${this.selectedPropTextureIndex}</span>]</h3>
-                    <select id='texture-selector' onchange='javascript:Engine.currentScene.modalSelectTexture()'>
-                        ${textures.join('')}
+                    <select id='bg-texture-selector' onchange='javascript:Engine.currentScene.modalSelectTexture(true)'>
+                        ${textures.filter((p) => p.includes('Bg')).join('')}
                     </select>
-                    <select id='index-selector' onchange='javascript:Engine.currentScene.modalSelectTextureIndex()'>
+                    <select id='bg-index-selector' onchange='javascript:Engine.currentScene.modalSelectTextureIndex(true)'>
                     <option value='0'>0</option>
-                    <option value='1'>1</option>
-                    <option value='2'>2</option>
-                    <option value='3'>3</option>
+                    </select>
+                    <br><br>
+                    <select id='prop-texture-selector' onchange='javascript:Engine.currentScene.modalSelectTexture(false)' value='${
+                        this.selectedPropTexture
+                    }'>
+                        ${textures.filter((p) => p.includes('Props')).join('')}
+                    </select>
+                    <select id='prop-index-selector' onchange='javascript:Engine.currentScene.modalSelectTextureIndex(false)'>
+                    <option value='0'>0</option>
+                    </select><br><br>
+                    <select id='celltype' onchange='javascript:Engine.currentScene.modalSelectCellType()'>
+                    ${cellTypes.join('')}
                     </select>
                     <hr>
-                    <input><button>import map</button><br><br>
-                    <button>export map</button>
+                    <input id='import-map'><button onclick='javascript:Engine.currentScene.modalImportMap()'>import map</button><br><br>
+                    <button onclick='javascript:Engine.currentScene.modalExportMap()'>export map</button>
                     `,
                     onClose: () => {
                         Engine.KeyboardManager.setDisabled(false);
                         this.camera.enableMousePanning(true);
                     },
                 });
+                let e1: any = document.getElementById('bg-texture-selector');
+                let e2: any = document.getElementById('prop-texture-selector');
+                let e3: any = document.getElementById('celltype');
+                e1.value = this.selectedBackgroundTexture.toString();
+                e2.value = this.selectedPropTexture.toString();
+                e3.value = this.selectedCellType.toString();
+
+                this.modalSelectTexture(true);
+                this.modalSelectTexture(false);
             },
             10
         );
@@ -351,22 +452,67 @@ export class MapEditor extends Scene {
                 texturesArray.forEach((tex, idx) => {
                     textures.push(`<option value='${idx}'>${tex}</option>`);
                 });
+
+                let cellTypesArray = Object.keys(CellType).filter((item) => {
+                    return isNaN(Number(item));
+                });
+                let cellTypes = [];
+                cellTypesArray.forEach((tex, idx) => {
+                    cellTypes.push(`<option value='${idx}'>${tex}</option>`);
+                });
                 Engine.createModal({
                     title: 'Fill tool',
                     content: `
-                    <p>start:</p>
-                    <input id='x1' style="width:40px;margin-right:5px;">x<br>
-                    <input id='y1' style="width:40px;margin-right:5px;">y<br>
+                    <div style='display: flex; flex-direction: row;align-items:center;justify-content: center; gap: 10px;'>
+                    <div>
+                    <p>begin:</p>
+                    <input id='x1' style="width:40px;height:20px;margin-right:5px;">x<br>
+                    <input id='y1' style="width:40px;height:20px;margin-right:5px;">y<br>
+                    </div>
+                    <div>
                     <p>end:</p>
-                    <input id='x2' style="width:40px;margin-right:5px;">x<br>
-                    <input id='y2' style="width:40px;margin-right:5px;">y<br>
-                    <button onclick='javascript:Engine.currentScene.fillCells()'>fill with currently selected options</button>
+                    <input id='x2' style="width:40px;height:20px;margin-right:5px;">x<br>
+                    <input id='y2' style="width:40px;height:20px;margin-right:5px;">y<br>
+                    </div>
+                    </div>
+                    <br>
+                    <select id='celltype'>
+                    ${cellTypes.join('')}
+                    </select><br><br>
+                    <button onclick='javascript:Engine.currentScene.fillCells()' style="padding: 10px;background-color:red;color:white;border-radius: 10px;">fill with currently selected options</button>
                     `,
                     onClose: () => {
                         Engine.KeyboardManager.setDisabled(false);
                         this.camera.enableMousePanning(true);
                     },
                 });
+            },
+            10
+        );
+        Engine.KeyboardManager.onKeyUp(
+            'KeyD',
+            () => {
+                this.cfgShowCellType = !this.cfgShowCellType;
+                this.qtCellTypePreviewEnabled.setCaption(
+                    'cell type preview: ' + (this.cfgShowCellType ? 'enabled' : 'disabled')
+                );
+                if (this.cfgShowCellType) this.qtCellTypePreviewEnabled.setColor('lightgreen');
+                else this.qtCellTypePreviewEnabled.setColor('pink');
+                if (this.cfgShowCellType) {
+                    this.editorCells.forEach((item) => {
+                        item.editorSprite.tint = CellTypeEditorColor[item.type];
+                        item.props.forEach((prop) => {
+                            prop.editorSprite.tint = CellTypeEditorColor[item.type];
+                        });
+                    });
+                } else {
+                    this.editorCells.forEach((item) => {
+                        item.editorSprite.tint = '0xffffff';
+                        item.props.forEach((prop) => {
+                            prop.editorSprite.tint = '0xffffff';
+                        });
+                    });
+                }
             },
             10
         );
@@ -422,8 +568,13 @@ export class MapEditor extends Scene {
             this.qtCellInfo.setCaption(
                 `bg: ${WorldTexturesEnum[cell.backgroundTexture].toString()}, idx: ${cell.backgroundTextureIndex}`
             );
+            let props = [];
+            cell.props.forEach((i) => {
+                props.push(WorldTexturesEnum[i.propTexture].toString());
+            });
             this.qtCellType.setCaption(`type: ` + CellType[cell.type].toString());
-            this.qtCellProps.setCaption(`props: ` + JSON.stringify(cell.props));
+            this.qtCellType.setColor(CellTypeEditorColor[cell.type]);
+            this.qtCellProps.setCaption(`props: ` + props.join(', '));
         } else {
             this.qtCellInfo.setCaption('');
             this.qtCellType.setCaption('');
@@ -434,7 +585,7 @@ export class MapEditor extends Scene {
     }
 
     private getCellByPoint(point) {
-        return this.placedMapCells.find((v) => v.x == point.x && v.y == point.y);
+        return this.editorCells.find((v) => v.x == point.x && v.y == point.y);
     }
     private createCell(
         point: PIXI.Point,
@@ -452,9 +603,9 @@ export class MapEditor extends Scene {
         if (isBg) {
             let cell = this.getCellByPoint(point);
             if (cell != undefined) {
-                let idx = this.placedMapCells.indexOf(cell);
+                let idx = this.editorCells.indexOf(cell);
                 cell.editorSprite.texture = GameAssets.WorldTextures[texture].textures[textureIndex];
-                this.placedMapCells[idx] = {
+                this.editorCells[idx] = {
                     x: point.x,
                     y: point.y,
                     backgroundTexture: texture,
@@ -469,7 +620,7 @@ export class MapEditor extends Scene {
                         this.selectedBackgroundTextureIndex
                     ]
                 );
-                this.placedMapCells.push({
+                this.editorCells.push({
                     x: point.x,
                     y: point.y,
                     backgroundTexture: this.selectedBackgroundTexture,
@@ -481,13 +632,14 @@ export class MapEditor extends Scene {
                 newSprite.position.set(snappedX, snappedY);
                 newSprite.width = cellSize;
                 newSprite.height = cellSize;
+                if (this.cfgShowCellType) newSprite.tint = CellTypeEditorColor[type];
                 this.mapContainer.addChild(newSprite);
             }
         } else {
             let cell = this.getCellByPoint(point);
             if (cell == undefined || cell.props.find((c) => c.propTexture == texture))
                 return console.warn(
-                    '[MapEditor] Cell must have background and must have same texture prop in order to place prop onto it.'
+                    '[MapEditor] Cell must have background and must not have same texture prop in order to place prop onto it.'
                 );
             const propSprite = new PIXI.Sprite(GameAssets.WorldTextures[texture].textures[textureIndex]);
             cell.props.push({
@@ -495,28 +647,64 @@ export class MapEditor extends Scene {
                 propTextureIndex: textureIndex,
                 tint: new PIXI.Color(0xffffff),
                 editorSprite: propSprite,
+                animated: false,
+                animationTextures: [],
             });
             propSprite.position.set(snappedX, snappedY);
             propSprite.width = cellSize;
             propSprite.height = cellSize;
+            if (this.cfgShowCellType) propSprite.tint = CellTypeEditorColor[type];
             this.mapContainer.addChild(propSprite);
         }
     }
     private deleteCell(point: PIXI.Point, isBg: boolean) {
         let cell = this.getCellByPoint(point);
-        if (!cell) return console.log("[MapEditor] Can't delete something that doesn't exist.");
+        if (!cell) return console.error("[MapEditor] Can't delete something that doesn't exist.");
         if (isBg) {
-            let idx = this.placedMapCells.indexOf(cell);
-            cell.editorSprite.removeFromParent();
-            this.placedMapCells.splice(idx, 1);
+            let idx = this.editorCells.indexOf(cell);
+            cell.editorSprite.destroy();
+            cell.props.forEach((prop) => {
+                prop.editorSprite.destroy();
+            });
+            this.editorCells.splice(idx, 1);
         } else {
             cell.props.forEach((prop) => {
-                prop.editorSprite.removeFromParent();
+                prop.editorSprite.destroy();
             });
             cell.props = [];
         }
     }
-
+    private copyCell(point) {
+        let cell = this.getCellByPoint(point);
+        this.selectedBackgroundTexture = cell.backgroundTexture;
+        this.selectedBackgroundTextureIndex = cell.backgroundTextureIndex;
+        if (cell.props[0]) {
+            this.selectedPropTexture = cell.props[0].propTexture;
+            this.selectedPropTextureIndex = cell.props[0].propTextureIndex;
+        }
+        this.selectedCellType = cell.type;
+    }
+    private cleanCell(cell: EditorCell) {
+        let props: ExportProp[] = [];
+        cell.props.forEach((p) => {
+            props.push({
+                propTexture: p.propTexture,
+                propTextureIndex: p.propTextureIndex,
+                tint: p.tint,
+                animated: p.animated,
+                animationTextures: p.animationTextures,
+            });
+        });
+        let result: ExportCell = {
+            x: cell.x,
+            y: cell.y,
+            backgroundTexture: cell.backgroundTexture,
+            backgroundTextureIndex: cell.backgroundTextureIndex,
+            type: cell.type,
+            props: props,
+        };
+        return result;
+    }
     // NOTE: this MUST be an arrow function.
     private onPointerUp = (event: PointerEvent) => {
         if (event.button == 2 || !this.cfgPlacingEnabled) return;
@@ -541,49 +729,63 @@ export class MapEditor extends Scene {
             textureIndex = this.selectedPropTextureIndex;
         }
         let shiftheld = Engine.KeyboardManager.isKeyDown('ShiftLeft');
-        if (!shiftheld) this.createCell(snappedPoint, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
-        else this.deleteCell(snappedPoint, this.cfgPlacingModeIsBg);
+        let ctrlheld = Engine.KeyboardManager.isKeyDown('ControlLeft');
+        if (!shiftheld && !ctrlheld)
+            this.createCell(snappedPoint, this.cfgPlacingModeIsBg, this.selectedCellType, tex, textureIndex);
+        else if (shiftheld && !ctrlheld) this.deleteCell(snappedPoint, this.cfgPlacingModeIsBg);
+        else if (!shiftheld && ctrlheld) this.copyCell(snappedPoint);
     };
-    public modalSelectTexture() {
-        const element: any = document.getElementById('texture-selector');
+    public modalSelectTexture(isBg) {
+        let element;
+        if (isBg) {
+            element = document.getElementById('bg-texture-selector');
+        } else {
+            element = document.getElementById('prop-texture-selector');
+        }
         const num = parseInt(element.value);
         const tex = WorldTexturesEnum[num].toString();
-        if (tex.startsWith('Props')) {
+        if (!isBg) {
             this.selectedPropTexture = num;
-            document.getElementById('propTexture').textContent = WorldTexturesEnum[num].toString();
         } else {
             this.selectedBackgroundTexture = num;
-            document.getElementById('backgroundTexture').textContent = WorldTexturesEnum[num].toString();
         }
         const howMany = GameAssets.WorldTextures[num].textures.length;
-        document.getElementById('index-selector').innerHTML = '';
+        let selector;
+        if (isBg) {
+            selector = document.getElementById('bg-index-selector');
+        } else {
+            selector = document.getElementById('prop-index-selector');
+        }
+        selector.innerHTML = '';
         for (let i = 0; i < howMany; i++) {
-            document.getElementById('index-selector').innerHTML += `<option value='${i}'>${i}</option>`;
+            selector.innerHTML += `<option value='${i}'>${i}</option>`;
         }
     }
-    public modalSelectTextureIndex() {
+    public modalSelectTextureIndex(isBg) {
         try {
-            const element: any = document.getElementById('texture-selector');
-            const num = parseInt(element.value);
-            const tex = WorldTexturesEnum[num].toString();
-            const number: any = document.getElementById('index-selector');
-            if (tex.startsWith('Props')) {
+            if (!isBg) {
+                let number: any = document.getElementById('prop-index-selector');
                 this.selectedPropTextureIndex = parseInt(number.value);
-                document.getElementById('propTextureIndex').textContent = number.value;
             } else {
+                let number: any = document.getElementById('bg-index-selector');
                 this.selectedBackgroundTextureIndex = parseInt(number.value);
-                document.getElementById('backgroundTextureIndex').textContent = number.value;
             }
         } catch (e) {
             console.error('Engine.currentScene.modalSelectTextureIndex crashed with error: ');
             console.error(e);
         }
     }
+    public modalSelectCellType() {
+        let e: any = document.getElementById('celltype');
+        this.selectedCellType = parseInt(e.value);
+    }
     public fillCells() {
         const x1: any = document.getElementById('x1');
         const y1: any = document.getElementById('y1');
         const x2: any = document.getElementById('x2');
         const y2: any = document.getElementById('y2');
+
+        const cellType: any = document.getElementById('celltype');
 
         const x1num = parseInt(x1.value);
         const y1num = parseInt(y1.value);
@@ -602,8 +804,60 @@ export class MapEditor extends Scene {
         for (let i = x1num; i < x2num; i += 1) {
             for (let j = y1num; j < y2num; j += 1) {
                 const point = new PIXI.Point(i, j);
-                this.createCell(point, this.cfgPlacingModeIsBg, CellType.Build, tex, textureIndex);
+                this.createCell(point, this.cfgPlacingModeIsBg, parseInt(cellType.value), tex, textureIndex);
             }
         }
+    }
+    public modalQuickTexture() {
+        let element: any = document.getElementById('texture-selector');
+        let source, image;
+        if (element.value == 'bg') {
+            source = GameAssets.WorldTextures[this.selectedBackgroundTexture];
+            image = `./assets/world/${WorldTexturesEnum[this.selectedBackgroundTexture].toString()}.png`;
+        } else {
+            source = GameAssets.WorldTextures[this.selectedPropTexture];
+            image = `./assets/world/${WorldTexturesEnum[this.selectedPropTexture].toString()}.png`;
+        }
+        console.log(image);
+        let preview = document.getElementById('texture-preview');
+        let size = source.size * 3;
+        preview.innerHTML = '';
+        preview.style.alignItems = 'center';
+        preview.style.justifyContent = 'center';
+        preview.style.display = 'grid';
+        preview.style.gap = '2px';
+        preview.style.gridTemplateColumns = `repeat(${source.cols}, ${size}px)`;
+        preview.style.gridTemplateRows = `repeat(${source.rows}, ${size}px)`;
+        for (let rows = 0; rows < source.rows; rows++) {
+            for (let cols = 0; cols < source.cols; cols++) {
+                let item = document.createElement('button');
+                item.style.backgroundImage = `url('${image}')`;
+                item.style.backgroundPositionX = `-${cols * size}px`;
+                item.style.backgroundPositionY = `-${rows * size}px`;
+                item.style.backgroundRepeat = 'no-repeat';
+                item.style.backgroundSize = `${source.cols * size}px ${source.rows * size}px`;
+                item.style.width = size + 'px';
+                item.style.height = size + 'px';
+                item.style.border = 'none';
+                preview.appendChild(item);
+                item.onclick = () => {
+                    if (element.value == 'bg') {
+                        this.selectedBackgroundTextureIndex = rows * source.cols + cols;
+                    } else {
+                        this.selectedPropTextureIndex = rows * source.cols + cols;
+                    }
+                    document.getElementById('modal-backdrop').click();
+                };
+            }
+        }
+    }
+    public modalExportMap() {
+        let clean: ExportCell[] = [];
+        this.editorCells.forEach((cell) => {
+            clean.push(this.cleanCell(cell));
+        });
+        console.log(JSON.stringify(clean));
+        navigator.clipboard.writeText(JSON.stringify(clean));
+        alert('Copied to clipboard and sent to console.');
     }
 }

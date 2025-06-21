@@ -67,12 +67,7 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
 
     await Assets.LoadAssets();
     globalThis.Engine = Engine;
-    // GameUIConstants.init();
     Engine.KeyboardManager = new KeyboardManager();
-    // new GameMaster();
-    // Engine.AnimationManager = new AnimationManager();
-    // Engine.NotificationManager = new NotificationManager();
-    // Engine.DebrisManager = new DebrisManager();
     PIXI.Ticker.shared.add((ticker) => {
         Engine.KeyboardManager.update();
     });
@@ -81,11 +76,11 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
         Engine.MouseY = ((event.clientY - app.canvas.offsetTop) / app.canvas.offsetHeight) * 1080;
     });
     Engine.changeScene(new MainScene());
-    if (Engine.latestCommit != 'DEVELOPMENT')
-        window.onbeforeunload = () => {
-            return 'You are about to leave.';
-        };
-    else Engine.TestSuite();
+    // if (Engine.latestCommit != 'DEVELOPMENT')
+    //     window.onbeforeunload = () => {
+    //         return 'You are about to leave.';
+    //     };
+    // else Engine.TestSuite();
 
     // let gamePausedDueToBlur = false;
 
