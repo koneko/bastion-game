@@ -615,12 +615,17 @@ export class MapEditor extends Scene {
             this.previewSprite.alpha = 0;
         }
 
+        let tex, textureIndex;
         if (this.cfgPlacingModeIsBg) {
             this.previewSprite.texture =
                 GameAssets.WorldTextures[this.selectedBackgroundTexture].textures[this.selectedBackgroundTextureIndex];
+            tex = this.selectedBackgroundTexture;
+            textureIndex = this.selectedBackgroundTextureIndex;
         } else {
             this.previewSprite.texture =
                 GameAssets.WorldTextures[this.selectedPropTexture].textures[this.selectedPropTextureIndex];
+            tex = this.selectedPropTexture;
+            textureIndex = this.selectedPropTextureIndex;
         }
 
         let cell = this.getCellByPoint(snappedPoint);
@@ -643,14 +648,6 @@ export class MapEditor extends Scene {
 
         this.previewSprite.position.set(snappedX, snappedY);
         if (!this.leftMouseDown || !this.cfgPlacingEnabled) return;
-        let tex, textureIndex;
-        if (this.cfgPlacingModeIsBg) {
-            tex = this.selectedBackgroundTexture;
-            textureIndex = this.selectedBackgroundTextureIndex;
-        } else {
-            tex = this.selectedPropTexture;
-            textureIndex = this.selectedPropTextureIndex;
-        }
         let shiftheld = Engine.KeyboardManager.isKeyDown('ShiftLeft');
         let ctrlheld = Engine.KeyboardManager.isKeyDown('ControlLeft');
         if (!shiftheld && !ctrlheld)
@@ -735,7 +732,7 @@ export class MapEditor extends Scene {
     }
     private deleteCell(point: PIXI.Point, isBg: boolean) {
         let cell = this.getCellByPoint(point);
-        if (!cell) return console.error("[MapEditor] Can't delete something that doesn't exist.");
+        if (!cell) return;
         if (isBg) {
             let idx = this.editorCells.indexOf(cell);
             cell.editorSprite.destroy();
@@ -752,6 +749,7 @@ export class MapEditor extends Scene {
     }
     private copyCell(point) {
         let cell = this.getCellByPoint(point);
+        if (!cell) return;
         this.selectedBackgroundTexture = cell.backgroundTexture;
         this.selectedBackgroundTextureIndex = cell.backgroundTextureIndex;
         if (cell.props[0]) {
@@ -862,7 +860,7 @@ export class MapEditor extends Scene {
         }
     }
     public modalQuickTexture() {
-        let element: any = document.getElementById('texture-selector');
+        const element: any = document.getElementById('texture-selector');
         let source, image;
         if (element.value == 'bg') {
             source = GameAssets.WorldTextures[this.selectedBackgroundTexture];
@@ -872,8 +870,8 @@ export class MapEditor extends Scene {
             image = `./assets/world/${WorldTexturesEnum[this.selectedPropTexture].toString()}.png`;
         }
         console.log(image);
-        let preview = document.getElementById('texture-preview');
-        let size = source.size * 3;
+        const preview = document.getElementById('texture-preview');
+        const size = source.size * 3;
         preview.innerHTML = '';
         preview.style.alignItems = 'center';
         preview.style.justifyContent = 'center';
@@ -905,7 +903,7 @@ export class MapEditor extends Scene {
         }
     }
     public modalExportMap() {
-        let clean: ExportCell[] = [];
+        const clean: ExportCell[] = [];
         this.editorCells.forEach((cell) => {
             clean.push(this.cleanCell(cell));
         });
