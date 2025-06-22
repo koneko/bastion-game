@@ -166,7 +166,7 @@ export class MapEditor extends Scene {
     private qtCellProps: QTObject;
 
     private cfgPlacingModeIsBg = true;
-    private cfgPreviewEnabled = true;
+    private cfgPreviewEnabled = false;
     private cfgPlacingEnabled = false;
     private cfgShowCellType = false;
 
@@ -179,7 +179,7 @@ export class MapEditor extends Scene {
         this.ticker.minFPS = 30;
 
         this.qtCellPlacemode = this.quickText.new('placing mode: bg', '#f9229c');
-        this.qtCellPreviewEnabled = this.quickText.new('cell preview: enabled', 'lightgreen');
+        this.qtCellPreviewEnabled = this.quickText.new('cell preview: disabled', 'pink');
         this.qtCellPlacingEnabled = this.quickText.new('able to place: disabled', 'pink');
         this.qtCellTypePreviewEnabled = this.quickText.new('cell type preview: disabled', 'pink');
         this.qtBackgroundIndex = this.quickText.new('', '#00d9ff');
@@ -277,23 +277,23 @@ export class MapEditor extends Scene {
                             </tr>
                             <tr>
                             <td>A</td>
-                            <td>Enable/disable show cell preview</td>
+                            <td>Enable/disable show cell preview + able to place with Left Click</td>
                             </tr>
                             <tr>
                             <td>S</td>
-                            <td>Enable/disable able to place with Left Click</td>
-                            </tr>
-                            <tr>
-                            <td>D</td>
-                            <td>Enable/disable show cell types</td>
-                            </tr>
-                            <tr>
-                            <td>F</td>
                             <td>Open cell picker</td>
                             </tr>
                             <tr>
-                            <td>G</td>
-                            <td>Cell fill tool (coords top left)</td>
+                            <td>D</td>
+                            <td>Open cell fill tool</td>
+                            </tr>
+                            <tr>
+                            <td>F</td>
+                            <td>Enable/disable show cell types</td>
+                            </tr>
+                            <tr>
+                            <td>Z</td>
+                            <td>Open prop animation editor</td>
                             </tr>
                             <tr>
                             <td>X</td>
@@ -418,13 +418,7 @@ export class MapEditor extends Scene {
                 );
                 if (this.cfgPreviewEnabled) this.qtCellPreviewEnabled.setColor('lightgreen');
                 else this.qtCellPreviewEnabled.setColor('pink');
-            },
-            10
-        );
-        // S
-        Engine.KeyboardManager.onKeyUp(
-            'KeyS',
-            () => {
+
                 this.cfgPlacingEnabled = !this.cfgPlacingEnabled;
                 this.qtCellPlacingEnabled.setCaption(
                     'able to place: ' + (this.cfgPlacingEnabled ? 'enabled' : 'disabled')
@@ -434,37 +428,9 @@ export class MapEditor extends Scene {
             },
             10
         );
-        // D
+        // S
         Engine.KeyboardManager.onKeyUp(
-            'KeyD',
-            () => {
-                this.cfgShowCellType = !this.cfgShowCellType;
-                this.qtCellTypePreviewEnabled.setCaption(
-                    'cell type preview: ' + (this.cfgShowCellType ? 'enabled' : 'disabled')
-                );
-                if (this.cfgShowCellType) this.qtCellTypePreviewEnabled.setColor('lightgreen');
-                else this.qtCellTypePreviewEnabled.setColor('pink');
-                if (this.cfgShowCellType) {
-                    this.editorCells.forEach((item) => {
-                        item.editorSprite.tint = CellTypeEditorColor[item.type];
-                        item.props.forEach((prop) => {
-                            prop.editorSprite.tint = CellTypeEditorColor[item.type];
-                        });
-                    });
-                } else {
-                    this.editorCells.forEach((item) => {
-                        item.editorSprite.tint = '0xffffff';
-                        item.props.forEach((prop) => {
-                            prop.editorSprite.tint = '0xffffff';
-                        });
-                    });
-                }
-            },
-            10
-        );
-        // F
-        Engine.KeyboardManager.onKeyUp(
-            'KeyF',
+            'KeyS',
             () => {
                 Engine.KeyboardManager.setDisabled(true);
                 this.camera.enableMousePanning(false);
@@ -526,9 +492,9 @@ export class MapEditor extends Scene {
             },
             10
         );
-        // G
+        // D
         Engine.KeyboardManager.onKeyUp(
-            'KeyG',
+            'KeyD',
             () => {
                 Engine.KeyboardManager.setDisabled(true);
                 this.camera.enableMousePanning(false);
@@ -573,6 +539,65 @@ export class MapEditor extends Scene {
                         this.camera.enableMousePanning(true);
                     },
                 });
+            },
+            10
+        );
+        // F
+        Engine.KeyboardManager.onKeyUp(
+            'KeyF',
+            () => {
+                this.cfgShowCellType = !this.cfgShowCellType;
+                this.qtCellTypePreviewEnabled.setCaption(
+                    'cell type preview: ' + (this.cfgShowCellType ? 'enabled' : 'disabled')
+                );
+                if (this.cfgShowCellType) this.qtCellTypePreviewEnabled.setColor('lightgreen');
+                else this.qtCellTypePreviewEnabled.setColor('pink');
+                if (this.cfgShowCellType) {
+                    this.editorCells.forEach((item) => {
+                        item.editorSprite.tint = CellTypeEditorColor[item.type];
+                        item.props.forEach((prop) => {
+                            prop.editorSprite.tint = CellTypeEditorColor[item.type];
+                        });
+                    });
+                } else {
+                    this.editorCells.forEach((item) => {
+                        item.editorSprite.tint = '0xffffff';
+                        item.props.forEach((prop) => {
+                            prop.editorSprite.tint = '0xffffff';
+                        });
+                    });
+                }
+            },
+            10
+        );
+        // Z
+        Engine.KeyboardManager.onKeyUp(
+            'KeyZ',
+            () => {
+                Engine.KeyboardManager.setDisabled(true);
+                this.camera.enableMousePanning(false);
+                const mousePos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
+                const cellSize = Engine.GridCellSize * Engine.SpriteScale;
+                const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
+                const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
+                Engine.createModal({
+                    title: 'Prop animation editor',
+                    content: `
+                    <p>animation works ONLY on FIRST PROP</p>
+                    <input type="checkbox" id='checkbox' onchange='javascript:Engine.currentScene.modalPropAnimationCheckbox()'><label>Animated</label><br><br>
+                    <label>Start spritesheet index</label><input style='width: 32px;' placeholder='0' id='start'><br><br>
+                    <label>End spritesheet index</label><input style='width: 32px;' placeholder='1' id='end'><br><br>
+                    <button onclick='javascript:Engine.currentScene.modalPropAnimationChange(${snappedX / cellSize}, ${
+                        snappedY / cellSize
+                    })'>apply</button>
+                    `,
+                    onClose: () => {
+                        Engine.KeyboardManager.setDisabled(false);
+                        this.camera.enableMousePanning(true);
+                    },
+                });
+                let e1: any = document.getElementById('checkbox');
+                this.modalPropAnimationCheckbox();
             },
             10
         );
@@ -869,7 +894,6 @@ export class MapEditor extends Scene {
             source = GameAssets.WorldTextures[this.selectedPropTexture];
             image = `./assets/world/${WorldTexturesEnum[this.selectedPropTexture].toString()}.png`;
         }
-        console.log(image);
         const preview = document.getElementById('texture-preview');
         const size = source.size * 3;
         preview.innerHTML = '';
@@ -910,5 +934,29 @@ export class MapEditor extends Scene {
         console.log(JSON.stringify(clean));
         navigator.clipboard.writeText(JSON.stringify(clean));
         alert('Copied to clipboard and sent to console.');
+    }
+    public modalPropAnimationCheckbox() {
+        let element: any = document.getElementById('checkbox');
+        let start: any = document.getElementById('start');
+        let end: any = document.getElementById('end');
+        if (element.checked) {
+            start.disabled = false;
+            end.disabled = false;
+        } else {
+            start.disabled = true;
+            end.disabled = true;
+        }
+    }
+    public modalPropAnimationChange(cellX, cellY) {
+        let cell = this.getCellByPoint(new PIXI.Point(cellX, cellY));
+        if (!cell) return;
+        const checkbox: any = document.getElementById('checkbox');
+        const start: any = document.getElementById('start');
+        const end: any = document.getElementById('end');
+        cell.props[0].animated = checkbox.checked;
+        if (!checkbox.checked) return;
+        for (let i = parseInt(start.value); i < parseInt(end.value); i++) {
+            cell.props[0].animationTextures.push(i);
+        }
     }
 }
