@@ -142,6 +142,7 @@ export class MapEditor extends Scene {
     private camera: Camera = new Camera(this.mapContainer);
     private placementGrid: PlacementGrid = new PlacementGrid();
     private ticker: PIXI.Ticker;
+    private leftMouseDown: boolean = false;
 
     private previewSprite: PIXI.Sprite;
     private selectedBackgroundTexture: WorldTexturesEnum = WorldTexturesEnum.BgTexturedGrass;
@@ -222,6 +223,7 @@ export class MapEditor extends Scene {
         });
         this.ticker.start();
 
+        Engine.app.canvas.addEventListener('pointerdown', this.onPointerDown);
         Engine.app.canvas.addEventListener('pointerup', this.onPointerUp);
 
         this.StartShortcuts();
@@ -640,6 +642,21 @@ export class MapEditor extends Scene {
         }
 
         this.previewSprite.position.set(snappedX, snappedY);
+        if (!this.leftMouseDown || !this.cfgPlacingEnabled) return;
+        let tex, textureIndex;
+        if (this.cfgPlacingModeIsBg) {
+            tex = this.selectedBackgroundTexture;
+            textureIndex = this.selectedBackgroundTextureIndex;
+        } else {
+            tex = this.selectedPropTexture;
+            textureIndex = this.selectedPropTextureIndex;
+        }
+        let shiftheld = Engine.KeyboardManager.isKeyDown('ShiftLeft');
+        let ctrlheld = Engine.KeyboardManager.isKeyDown('ControlLeft');
+        if (!shiftheld && !ctrlheld)
+            this.createCell(snappedPoint, this.cfgPlacingModeIsBg, this.selectedCellType, tex, textureIndex);
+        else if (shiftheld && !ctrlheld) this.deleteCell(snappedPoint, this.cfgPlacingModeIsBg);
+        else if (!shiftheld && ctrlheld) this.copyCell(snappedPoint);
     }
 
     private getCellByPoint(point) {
@@ -765,34 +782,11 @@ export class MapEditor extends Scene {
         return result;
     }
     // NOTE: this MUST be an arrow function.
+    private onPointerDown = (event: PointerEvent) => {
+        if (event.button != 2) this.leftMouseDown = true;
+    };
     private onPointerUp = (event: PointerEvent) => {
-        if (event.button == 2 || !this.cfgPlacingEnabled) return;
-        // Convert global screen mouse position to world position
-        const worldPos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
-
-        const cellSize = Engine.GridCellSize * Engine.SpriteScale;
-
-        // Snap position to grid
-        const snappedX = Math.floor(worldPos.x / cellSize) * cellSize;
-        const snappedY = Math.floor(worldPos.y / cellSize) * cellSize;
-        const snappedPoint = new PIXI.Point(
-            snappedX / (Engine.GridCellSize * Engine.SpriteScale),
-            snappedY / (Engine.GridCellSize * Engine.SpriteScale)
-        );
-        let tex, textureIndex;
-        if (this.cfgPlacingModeIsBg) {
-            tex = this.selectedBackgroundTexture;
-            textureIndex = this.selectedBackgroundTextureIndex;
-        } else {
-            tex = this.selectedPropTexture;
-            textureIndex = this.selectedPropTextureIndex;
-        }
-        let shiftheld = Engine.KeyboardManager.isKeyDown('ShiftLeft');
-        let ctrlheld = Engine.KeyboardManager.isKeyDown('ControlLeft');
-        if (!shiftheld && !ctrlheld)
-            this.createCell(snappedPoint, this.cfgPlacingModeIsBg, this.selectedCellType, tex, textureIndex);
-        else if (shiftheld && !ctrlheld) this.deleteCell(snappedPoint, this.cfgPlacingModeIsBg);
-        else if (!shiftheld && ctrlheld) this.copyCell(snappedPoint);
+        if (event.button != 2) this.leftMouseDown = false;
     };
     public modalSelectTexture(isBg) {
         let element;

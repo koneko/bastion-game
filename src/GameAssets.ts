@@ -116,7 +116,7 @@ export default class GameAssets {
             const spritesheet = new PIXI.Spritesheet(webTexture, {
                 frames,
                 meta: {
-                    image: `./assets/creeps/${name}/spritesheet.png`,
+                    image: `./assets/world/${name}.png`,
                     format: 'RGBA8888',
                     size: { w: webTexture.frame.width, h: webTexture.frame.height },
                     scale: '1',
