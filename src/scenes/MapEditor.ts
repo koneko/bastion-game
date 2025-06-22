@@ -363,10 +363,10 @@ export class MapEditor extends Scene {
             () => {
                 if (this.cfgPlacingModeIsBg) {
                     const howMany = GameAssets.WorldTextures[this.selectedBackgroundTexture].textures.length - 1;
-                    if (this.selectedBackgroundTexture != howMany) this.selectedBackgroundTextureIndex++;
+                    if (this.selectedBackgroundTextureIndex < howMany) this.selectedBackgroundTextureIndex++;
                 } else {
                     const howMany = GameAssets.WorldTextures[this.selectedPropTexture].textures.length - 1;
-                    if (this.selectedPropTextureIndex != howMany) this.selectedPropTextureIndex++;
+                    if (this.selectedPropTextureIndex < howMany) this.selectedPropTextureIndex++;
                 }
             },
             10
@@ -472,7 +472,9 @@ export class MapEditor extends Scene {
                     ${cellTypes.join('')}
                     </select>
                     <hr>
-                    <input id='import-map'><button onclick='javascript:Engine.currentScene.modalImportMap()'>import map</button><br><br>
+                    <h1 id='warn'></h1>
+                    <p>Import map from file (can take a while for bigger files)</p>
+                    <input id='import-map' type="file" accept=".json"><br><br>
                     <button onclick='javascript:Engine.currentScene.modalExportMap()'>export map</button>
                     `,
                     onClose: () => {
@@ -486,6 +488,48 @@ export class MapEditor extends Scene {
                 e1.value = this.selectedBackgroundTexture.toString();
                 e2.value = this.selectedPropTexture.toString();
                 e3.value = this.selectedCellType.toString();
+
+                const fileInput = document.getElementById('import-map') as HTMLInputElement;
+                fileInput.addEventListener('change', (event) => {
+                    const file = fileInput.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.readAsText(file);
+                    reader.onload = () => {
+                        const content = reader.result as string;
+                        try {
+                            const importCells: ExportCell[] = JSON.parse(content);
+                            document.getElementById('modal-backdrop').click();
+                            importCells.forEach((cell) => {
+                                const point = new PIXI.Point(cell.x, cell.y);
+                                this.createCell(
+                                    point,
+                                    true,
+                                    cell.type,
+                                    cell.backgroundTexture,
+                                    cell.backgroundTextureIndex
+                                );
+                                cell.props.forEach((prop) => {
+                                    let p: EditorProp = this.createCell(
+                                        point,
+                                        false,
+                                        cell.type,
+                                        prop.propTexture,
+                                        prop.propTextureIndex
+                                    ) as EditorProp;
+                                    p.animated = prop.animated;
+                                    p.animationTextures = prop.animationTextures;
+                                });
+                            });
+                        } catch (e) {
+                            console.error('Invalid JSON');
+                        }
+                    };
+
+                    reader.onerror = () => {
+                        console.error('Error reading file:', reader.error);
+                    };
+                });
 
                 this.modalSelectTexture(true);
                 this.modalSelectTexture(false);
@@ -608,6 +652,7 @@ export class MapEditor extends Scene {
         this.gui.forEach((element) => {
             element.destroy();
         });
+        Engine.app.canvas.removeEventListener('pointerdown', this.onPointerDown);
         Engine.app.canvas.removeEventListener('pointerup', this.onPointerUp);
         this.camera.destroy();
         this.ticker.stop();
@@ -696,7 +741,7 @@ export class MapEditor extends Scene {
         const cellSize = Engine.GridCellSize * Engine.SpriteScale;
         const snappedX = point.x * cellSize;
         const snappedY = point.y * cellSize;
-
+        let returnValue: EditorCell | EditorProp;
         if (isBg) {
             let cell = this.getCellByPoint(point);
             if (cell != undefined) {
@@ -712,26 +757,25 @@ export class MapEditor extends Scene {
                     props: cell.props,
                     editorSprite: cell.editorSprite,
                 };
+                returnValue = this.editorCells[idx];
             } else {
-                const newSprite = new PIXI.Sprite(
-                    GameAssets.WorldTextures[this.selectedBackgroundTexture].textures[
-                        this.selectedBackgroundTextureIndex
-                    ]
-                );
-                this.editorCells.push({
+                const newSprite = new PIXI.Sprite(GameAssets.WorldTextures[texture].textures[textureIndex]);
+                const c: EditorCell = {
                     x: point.x,
                     y: point.y,
-                    backgroundTexture: this.selectedBackgroundTexture,
-                    backgroundTextureIndex: this.selectedBackgroundTextureIndex,
+                    backgroundTexture: texture,
+                    backgroundTextureIndex: textureIndex,
                     type: type,
                     props: [],
                     editorSprite: newSprite,
-                });
+                };
+                this.editorCells.push(c);
                 newSprite.position.set(snappedX, snappedY);
                 newSprite.width = cellSize;
                 newSprite.height = cellSize;
                 if (this.cfgShowCellType) newSprite.tint = CellTypeEditorColor[type];
                 this.mapContainer.addChild(newSprite);
+                returnValue = c;
             }
         } else {
             let cell = this.getCellByPoint(point);
@@ -740,20 +784,23 @@ export class MapEditor extends Scene {
                     '[MapEditor] Cell must have background and must not have same texture prop in order to place prop onto it.'
                 );
             const propSprite = new PIXI.Sprite(GameAssets.WorldTextures[texture].textures[textureIndex]);
-            cell.props.push({
+            let prop: EditorProp = {
                 propTexture: texture,
                 propTextureIndex: textureIndex,
                 tint: new PIXI.Color(0xffffff),
                 editorSprite: propSprite,
                 animated: false,
                 animationTextures: [],
-            });
+            };
+            cell.props.push(prop);
             propSprite.position.set(snappedX, snappedY);
             propSprite.width = cellSize;
             propSprite.height = cellSize;
             if (this.cfgShowCellType) propSprite.tint = CellTypeEditorColor[type];
             this.mapContainer.addChild(propSprite);
+            returnValue = prop;
         }
+        return returnValue;
     }
     private deleteCell(point: PIXI.Point, isBg: boolean) {
         let cell = this.getCellByPoint(point);
@@ -931,9 +978,22 @@ export class MapEditor extends Scene {
         this.editorCells.forEach((cell) => {
             clean.push(this.cleanCell(cell));
         });
-        console.log(JSON.stringify(clean));
-        navigator.clipboard.writeText(JSON.stringify(clean));
-        alert('Copied to clipboard and sent to console.');
+        // Create a Blob from the string
+        const blob = new Blob([JSON.stringify(clean)], { type: 'application/json' });
+
+        // Create a URL for the Blob
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary anchor element and trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'map.json'; // Filename for download
+        document.body.appendChild(a); // Required for Firefox
+        a.click();
+        document.body.removeChild(a);
+
+        // Clean up the URL object
+        URL.revokeObjectURL(url);
     }
     public modalPropAnimationCheckbox() {
         let element: any = document.getElementById('checkbox');
