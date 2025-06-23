@@ -5,6 +5,7 @@ import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 import { Camera } from '../classes/game/Camera';
 import { QTObject } from '../classes/gui/QuickText';
+import { BSON } from 'bson';
 
 enum CellType {
     Build = 0,
@@ -474,7 +475,7 @@ export class MapEditor extends Scene {
                     <hr>
                     <h1 id='warn'></h1>
                     <p>Import map from file (can take a while for bigger files)</p>
-                    <input id='import-map' type="file" accept=".json"><br><br>
+                    <input id='import-map' type="file" accept=".bastion"><br><br>
                     <button onclick='javascript:Engine.currentScene.modalExportMap()'>export map</button>
                     `,
                     onClose: () => {
@@ -494,11 +495,13 @@ export class MapEditor extends Scene {
                     const file = fileInput.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
-                    reader.readAsText(file);
+                    reader.readAsArrayBuffer(file);
                     reader.onload = () => {
-                        const content = reader.result as string;
+                        const content = reader.result as ArrayBuffer;
                         try {
-                            const importCells: ExportCell[] = JSON.parse(content);
+                            const uint8array = new Uint8Array(content);
+                            const decoded = BSON.deserialize(uint8array);
+                            const importCells: ExportCell[] = decoded.cells;
                             document.getElementById('modal-backdrop').click();
                             importCells.forEach((cell) => {
                                 const point = new PIXI.Point(cell.x, cell.y);
@@ -628,7 +631,8 @@ export class MapEditor extends Scene {
                     title: 'Prop animation editor',
                     content: `
                     <p>animation works ONLY on FIRST PROP</p>
-                    <input type="checkbox" id='checkbox' onchange='javascript:Engine.currentScene.modalPropAnimationCheckbox()'><label>Animated</label><br><br>
+                    <p id='prop-info'></p>
+                    <input type="checkbox" id='checkbox'><label>Animated</label><br><br>
                     <label>Start spritesheet index</label><input style='width: 32px;' placeholder='0' id='start'><br><br>
                     <label>End spritesheet index</label><input style='width: 32px;' placeholder='1' id='end'><br><br>
                     <button onclick='javascript:Engine.currentScene.modalPropAnimationChange(${snappedX / cellSize}, ${
@@ -640,8 +644,7 @@ export class MapEditor extends Scene {
                         this.camera.enableMousePanning(true);
                     },
                 });
-                let e1: any = document.getElementById('checkbox');
-                this.modalPropAnimationCheckbox();
+                this.modalPropAnimationCheckbox(snappedX / cellSize, snappedY / cellSize);
             },
             10
         );
@@ -866,7 +869,6 @@ export class MapEditor extends Scene {
             element = document.getElementById('prop-texture-selector');
         }
         const num = parseInt(element.value);
-        const tex = WorldTexturesEnum[num].toString();
         if (!isBg) {
             this.selectedPropTexture = num;
         } else {
@@ -979,7 +981,7 @@ export class MapEditor extends Scene {
             clean.push(this.cleanCell(cell));
         });
         // Create a Blob from the string
-        const blob = new Blob([JSON.stringify(clean)], { type: 'application/json' });
+        const blob = new Blob([BSON.serialize({ cells: clean })], { type: 'application/json' });
 
         // Create a URL for the Blob
         const url = URL.createObjectURL(blob);
@@ -987,7 +989,7 @@ export class MapEditor extends Scene {
         // Create a temporary anchor element and trigger download
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'map.json'; // Filename for download
+        a.download = 'map.bastion'; // Filename for download
         document.body.appendChild(a); // Required for Firefox
         a.click();
         document.body.removeChild(a);
@@ -995,17 +997,20 @@ export class MapEditor extends Scene {
         // Clean up the URL object
         URL.revokeObjectURL(url);
     }
-    public modalPropAnimationCheckbox() {
+    public modalPropAnimationCheckbox(snappedX, snappedY) {
+        let point = new PIXI.Point(snappedX, snappedY);
+        let cell = this.getCellByPoint(point);
+        if (!cell || !cell.props[0]) return;
         let element: any = document.getElementById('checkbox');
+        let propinfo: any = document.getElementById('prop-info');
         let start: any = document.getElementById('start');
         let end: any = document.getElementById('end');
-        if (element.checked) {
-            start.disabled = false;
-            end.disabled = false;
-        } else {
-            start.disabled = true;
-            end.disabled = true;
-        }
+        let textureinfo = GameAssets.WorldTextures[cell.props[0].propTexture];
+        propinfo.textContent = `${textureinfo.name} has 0 - ${textureinfo.textures.length - 1} valid indexes.`;
+        if (cell.props[0].animated) element.checked = true;
+        if (cell.props[0].animationTextures.length == 0) return;
+        start.value = cell.props[0].animationTextures[0].toString();
+        end.value = cell.props[0].animationTextures[cell.props[0].animationTextures.length - 1].toString();
     }
     public modalPropAnimationChange(cellX, cellY) {
         let cell = this.getCellByPoint(new PIXI.Point(cellX, cellY));
@@ -1015,7 +1020,7 @@ export class MapEditor extends Scene {
         const end: any = document.getElementById('end');
         cell.props[0].animated = checkbox.checked;
         if (!checkbox.checked) return;
-        for (let i = parseInt(start.value); i < parseInt(end.value); i++) {
+        for (let i = parseInt(start.value); i <= parseInt(end.value); i++) {
             cell.props[0].animationTextures.push(i);
         }
     }
