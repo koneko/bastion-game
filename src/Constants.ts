@@ -3,6 +3,15 @@ import GuiObject from './classes/GuiObject';
 import Scene from './scenes/Scene';
 import { KeyboardManager } from './classes/game/managers/KeyboardManager';
 
+export enum CellType {
+    Build = 0,
+    NoBuild = 1,
+    EnemySpawn = 2,
+    PathingObjective = 3,
+    CoreObjective = 4,
+    PlayerWall = 5,
+}
+
 export class Engine {
     public static app: PIXI.Application;
     public static currentScene: Scene;

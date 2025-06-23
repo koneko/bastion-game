@@ -1,20 +1,11 @@
 // yes i used ai for this, i was super lazy
 import GameAssets, { WorldTexturesEnum } from '../GameAssets';
-import { Engine } from '../Constants';
+import { Engine, CellType } from '../Constants';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 import { Camera } from '../classes/game/Camera';
 import { QTObject } from '../classes/gui/QuickText';
 import { BSON } from 'bson';
-
-enum CellType {
-    Build = 0,
-    NoBuild = 1,
-    EnemySpawn = 2,
-    PathingObjective = 3,
-    CoreObjective = 4,
-    PlayerWall = 5,
-}
 
 const CellTypeEditorColor = ['orange', 'red', 'purple', 'cyan', 'blue', 'gray'];
 
@@ -65,6 +56,7 @@ export class PlacementGrid {
 
     constructor() {
         this.graphics = new PIXI.Graphics();
+        this.graphics.zIndex = 100;
         this.cellSize = Engine.GridCellSize * Engine.SpriteScale;
         this.color = 0xffffff;
         this.lineAlpha = 0.5;
