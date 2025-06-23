@@ -1,8 +1,10 @@
 import * as PIXI from 'pixi.js';
 import { Engine } from './Constants';
 import Assets from './GameAssets';
-import { MainScene } from './scenes/MainScene';
+import { StartScene } from './scenes/StartScene';
 import { KeyboardManager } from './classes/game/managers/KeyboardManager';
+import { MapEditor } from './scenes/MapEditor';
+import { GameScene } from './scenes/GameScene';
 
 (async () => {
     const app = new PIXI.Application();
@@ -58,7 +60,6 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
         unsuportedDeviceText.y = Engine.app.canvas.height / 2 + 50;
         unsuportedDeviceText.anchor.set(0.5, 0.5);
         Engine.app.stage.addChild(unsuportedDeviceText);
-
         return;
     }
     window.addEventListener('contextmenu', (e) => {
@@ -75,25 +76,13 @@ import { KeyboardManager } from './classes/game/managers/KeyboardManager';
         Engine.MouseX = ((event.clientX - app.canvas.offsetLeft) / app.canvas.offsetWidth) * 1920;
         Engine.MouseY = ((event.clientY - app.canvas.offsetTop) / app.canvas.offsetHeight) * 1080;
     });
-    Engine.changeScene(new MainScene());
+    let params = new URLSearchParams(location.href);
+    if (params.entries().next().value[1] == 'editor') Engine.changeScene(new MapEditor());
+    else if (params.entries().next().value[1] == 'game') Engine.changeScene(new GameScene());
+    else Engine.changeScene(new StartScene());
     // if (Engine.latestCommit != 'DEVELOPMENT')
     //     window.onbeforeunload = () => {
     //         return 'You are about to leave.';
     //     };
     // else Engine.TestSuite();
-
-    // let gamePausedDueToBlur = false;
-
-    // window.addEventListener('blur', () => {
-    //     if (Engine.currentScene.isMap && !Engine.GameScene.isPaused) {
-    //         Engine.GameScene.PauseGame();
-    //         gamePausedDueToBlur = true;
-    //     }
-    // });
-    // window.addEventListener('focus', () => {
-    //     if (Engine.GameScene && gamePausedDueToBlur && Engine.GameScene.isPaused) {
-    //         gamePausedDueToBlur = false;
-    //         Engine.GameScene.UnpauseGame();
-    //     }
-    // });
 })();

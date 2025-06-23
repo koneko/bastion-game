@@ -4,7 +4,7 @@ import { MapEditor } from './MapEditor';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 
-export class MainScene extends Scene {
+export class StartScene extends Scene {
     public init() {
         const NewGameButton = {
             caption: 'MapEditor',

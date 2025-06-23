@@ -3,6 +3,6 @@ import Button, { ButtonTexture } from '../classes/gui/Button';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 
-export class MainScene extends Scene {
+export class GameScene extends Scene {
     public init() {}
 }
