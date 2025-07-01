@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import { Engine } from '../../Constants';
 
 /**
  * A camera system with target following, zoom, and optional mouse panning.
@@ -15,6 +16,7 @@ export class Camera {
     private isMousePanningEnabled: boolean = false;
 
     private isDragging: boolean = false;
+    private canZoom: boolean = true;
     private dragStart: PIXI.Point = new PIXI.Point();
     private cameraStart: PIXI.Point = new PIXI.Point();
 
@@ -30,12 +32,35 @@ export class Camera {
 
     private onWheel = (e: WheelEvent) => {
         e.preventDefault(); // prevent page scroll
-
-        // Normalize wheel delta (positive is zoom out, negative zoom in)
+        if (!this.canZoom) return;
         const delta = e.deltaY > 0 ? -1 : 1;
+        const oldZoom = this.zoomLevel;
+        const newZoom = this.zoomLevel + delta * this.zoomSpeed;
 
-        // Adjust zoom based on delta and speed
-        this.setZoom(this.zoomLevel + delta * this.zoomSpeed);
+        // Clamp zoom if needed
+        const clampedZoom = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+
+        // Get mouse position in screen space
+        const screenX = Engine.MouseX;
+        const screenY = Engine.MouseY;
+
+        // Convert screen position to world position before zoom
+        const worldXBefore = (screenX - this.container.position.x) / oldZoom;
+        const worldYBefore = (screenY - this.container.position.y) / oldZoom;
+
+        // Apply zoom
+        this.setZoom(clampedZoom);
+
+        // Convert world position back to screen coordinates after zoom
+        const worldXAfter = worldXBefore * clampedZoom + this.container.position.x;
+        const worldYAfter = worldYBefore * clampedZoom + this.container.position.y;
+
+        // Offset camera so the point under the mouse stays under the mouse
+        this.container.position.x -= worldXAfter - screenX;
+        this.container.position.y -= worldYAfter - screenY;
+
+        // Save zoom level
+        this.zoomLevel = clampedZoom;
     };
 
     public follow(target: PIXI.Container) {
@@ -70,6 +95,10 @@ export class Camera {
     public enableMousePanning(enabled: boolean) {
         this.isMousePanningEnabled = enabled;
         if (!enabled) this.isDragging = false;
+    }
+
+    public enableZooming(enabled: boolean) {
+        this.canZoom = enabled;
     }
 
     public update(deltaMS: number) {

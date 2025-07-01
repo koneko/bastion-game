@@ -5,6 +5,7 @@ import { StartScene } from './scenes/StartScene';
 import { KeyboardManager } from './classes/game/managers/KeyboardManager';
 import { MapEditor } from './scenes/MapEditor';
 import { GameScene } from './scenes/GameScene';
+import { TestingScene } from './scenes/TestingScene';
 
 (async () => {
     const app = new PIXI.Application();
@@ -79,6 +80,7 @@ import { GameScene } from './scenes/GameScene';
     let params = new URLSearchParams(location.href);
     if (params.entries().next().value[1] == 'editor') Engine.changeScene(new MapEditor());
     else if (params.entries().next().value[1] == 'game') Engine.changeScene(new GameScene());
+    else if (params.entries().next().value[1] == 'test') Engine.changeScene(new TestingScene());
     else Engine.changeScene(new StartScene());
     // if (Engine.latestCommit != 'DEVELOPMENT')
     //     window.onbeforeunload = () => {

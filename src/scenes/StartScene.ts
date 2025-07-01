@@ -9,7 +9,6 @@ export class StartScene extends Scene {
         const NewGameButton = {
             caption: 'MapEditor',
             rect: new PIXI.Rectangle(Engine.app.canvas.width / 2 - 300 / 2, 400 + 0 * 70, 300, 60),
-
             texture: ButtonTexture.Button01,
         };
 
@@ -19,7 +18,7 @@ export class StartScene extends Scene {
             text: 'Latest commit: ' + Engine.latestCommit,
             style: {
                 fill: 0xffffff,
-                fontSize: 10,
+                fontSize: 16,
                 fontWeight: 'bold',
             },
         });

@@ -1,13 +1,13 @@
 // yes i used ai for this, i was super lazy
 import GameAssets, { WorldTexturesEnum } from '../GameAssets';
-import { Engine, CellType } from '../Constants';
+import { Engine, CellType, ExportCell, ExportProp } from '../Constants';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 import { Camera } from '../classes/game/Camera';
 import { QTObject } from '../classes/gui/QuickText';
 import { BSON } from 'bson';
 
-const CellTypeEditorColor = ['orange', 'red', 'purple', 'cyan', 'blue', 'gray'];
+const CellTypeEditorColor = ['orange', 'red', 'purple', 'cyan', 'blue', 'gray', 'yellow'];
 
 type EditorProp = {
     propTexture: WorldTexturesEnum;
@@ -28,23 +28,6 @@ type EditorCell = {
     editorSprite: PIXI.Sprite;
 };
 
-type ExportProp = {
-    propTexture: WorldTexturesEnum;
-    propTextureIndex: number;
-    tint: PIXI.Color;
-    animated: boolean;
-    animationTextures: number[];
-};
-
-type ExportCell = {
-    x: number;
-    y: number;
-    backgroundTexture: WorldTexturesEnum;
-    backgroundTextureIndex: number;
-    type: CellType;
-    props: ExportProp[];
-};
-
 /**
  * Infinite grid renderer that draws a grid based on camera position and zoom.
  */
@@ -57,7 +40,7 @@ export class PlacementGrid {
     constructor() {
         this.graphics = new PIXI.Graphics();
         this.graphics.zIndex = 100;
-        this.cellSize = Engine.GridCellSize * Engine.SpriteScale;
+        this.cellSize = Engine.GridCellSize * Engine.GridUpscale;
         this.color = 0xffffff;
         this.lineAlpha = 0.5;
     }
@@ -204,8 +187,8 @@ export class MapEditor extends Scene {
         this.previewSprite = new PIXI.Sprite(
             GameAssets.WorldTextures[this.selectedBackgroundTexture].textures[this.selectedBackgroundTextureIndex]
         );
-        this.previewSprite.width = Engine.GridCellSize * Engine.SpriteScale;
-        this.previewSprite.height = Engine.GridCellSize * Engine.SpriteScale;
+        this.previewSprite.width = Engine.GridCellSize * Engine.GridUpscale;
+        this.previewSprite.height = Engine.GridCellSize * Engine.GridUpscale;
         this.previewSprite.zIndex = 50;
         this.mapContainer.addChild(this.previewSprite);
 
@@ -616,7 +599,7 @@ export class MapEditor extends Scene {
                 Engine.KeyboardManager.setDisabled(true);
                 this.camera.enableMousePanning(false);
                 const mousePos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
-                const cellSize = Engine.GridCellSize * Engine.SpriteScale;
+                const cellSize = Engine.GridCellSize * Engine.GridUpscale;
                 const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
                 const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
                 Engine.createModal({
@@ -658,20 +641,20 @@ export class MapEditor extends Scene {
         const mousePos = this.mapContainer.toLocal(new PIXI.Point(Engine.MouseX, Engine.MouseY));
 
         // Use raw grid size in world units (not scaled twice)
-        const cellSize = Engine.GridCellSize * Engine.SpriteScale;
+        const cellSize = Engine.GridCellSize * Engine.GridUpscale;
 
         // Snap preview sprite to grid-aligned world position
         const snappedX = Math.floor(mousePos.x / cellSize) * cellSize;
         const snappedY = Math.floor(mousePos.y / cellSize) * cellSize;
 
-        this.qtMouseX.setCaption('x: ' + snappedX / (Engine.GridCellSize * Engine.SpriteScale));
-        this.qtMouseY.setCaption('y: ' + snappedY / (Engine.GridCellSize * Engine.SpriteScale));
+        this.qtMouseX.setCaption('x: ' + snappedX / (Engine.GridCellSize * Engine.GridUpscale));
+        this.qtMouseY.setCaption('y: ' + snappedY / (Engine.GridCellSize * Engine.GridUpscale));
         this.qtBackgroundIndex.setCaption('background sprite idx: ' + this.selectedBackgroundTextureIndex);
         this.qtPropIndex.setCaption('prop sprite idx: ' + this.selectedPropTextureIndex);
 
         let snappedPoint = new PIXI.Point(
-            snappedX / (Engine.GridCellSize * Engine.SpriteScale),
-            snappedY / (Engine.GridCellSize * Engine.SpriteScale)
+            snappedX / (Engine.GridCellSize * Engine.GridUpscale),
+            snappedY / (Engine.GridCellSize * Engine.GridUpscale)
         );
 
         if (this.cfgPreviewEnabled) {
@@ -733,7 +716,7 @@ export class MapEditor extends Scene {
     ) {
         // snapped point is unit irrelevant, while snappedX and snappedY are relevant to units
         // e.g snapped point (1, 2). snappedX and snappedY (1 * cellSize, 2 * cellSize)
-        const cellSize = Engine.GridCellSize * Engine.SpriteScale;
+        const cellSize = Engine.GridCellSize * Engine.GridUpscale;
         const snappedX = point.x * cellSize;
         const snappedY = point.y * cellSize;
         let returnValue: EditorCell | EditorProp;

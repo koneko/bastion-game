@@ -2,6 +2,9 @@ import * as PIXI from 'pixi.js';
 import GuiObject from './classes/GuiObject';
 import Scene from './scenes/Scene';
 import { KeyboardManager } from './classes/game/managers/KeyboardManager';
+import { WorldTexturesEnum } from './GameAssets';
+import { Cell } from './classes/game/World';
+import { Enemy } from './classes/game/Enemy';
 
 export enum CellType {
     Build = 0,
@@ -10,7 +13,45 @@ export enum CellType {
     PathingObjective = 3,
     CoreObjective = 4,
     PlayerWall = 5,
+    PlayerSpawn = 6,
 }
+
+export type Path = {
+    cells: Cell[];
+};
+
+export type Wave = {
+    enemyCount: Enemy[];
+};
+
+export enum Difficulty {
+    Easy = 0,
+}
+
+export type Map = {
+    name: string;
+    difficulties: Difficulty[];
+    waves: Wave[];
+    paths: Path[];
+    world: Cell[];
+};
+
+export type ExportProp = {
+    propTexture: WorldTexturesEnum;
+    propTextureIndex: number;
+    tint: PIXI.Color;
+    animated: boolean;
+    animationTextures: number[];
+};
+
+export type ExportCell = {
+    x: number;
+    y: number;
+    backgroundTexture: WorldTexturesEnum;
+    backgroundTextureIndex: number;
+    type: CellType;
+    props: ExportProp[];
+};
 
 export class Engine {
     public static app: PIXI.Application;
@@ -20,7 +61,9 @@ export class Engine {
     public static KeyboardManager: KeyboardManager;
 
     public static GridCellSize: number = 16;
-    public static SpriteScale: number = 1.5;
+    public static GridUpscale: number = 1.5;
+    public static PlayerSpriteScale: number = 1;
+    public static EnemySpriteScale: number = 1;
     public static MouseX: number = 0;
     public static MouseY: number = 0;
 
