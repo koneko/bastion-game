@@ -1,0 +1,12 @@
+{
+    "name": "Soldier",
+    "textureSize": 100,
+    "animations": [
+        {
+            "animationName": "idle",
+            "animationSpeed": 1,
+            "indexes": [0, 1, 2, 3, 4, 5],
+            "textures": []
+        }
+    ]
+}
