@@ -7,7 +7,7 @@ import { Engine } from '../../Constants';
 export class Camera {
     private container: PIXI.Container;
     private target: PIXI.Container | null = null;
-    private zoomLevel: number = 1;
+    private zoomLevel: number = 0.5;
     private zoomSpeed: number = 0.1;
     private readonly minZoom = 1; // as much as you can go OUT
     private readonly maxZoom = 3; // as much as you can go IN
@@ -100,15 +100,26 @@ export class Camera {
     public enableZooming(enabled: boolean) {
         this.canZoom = enabled;
     }
+    public update(delta: number) {
+        if (!this.target || !this.isFollowingEnabled || this.isDragging) return;
 
-    public update(deltaMS: number) {
-        if (this.target && this.isFollowingEnabled && !this.isDragging) {
-            const targetX = -this.target.x * this.zoomLevel + window.innerWidth / 2;
-            const targetY = -this.target.y * this.zoomLevel + window.innerHeight / 2;
+        const lerpSpeed = 0.1;
 
-            this.container.x += (targetX - this.container.x) * 0.1 * deltaMS;
-            this.container.y += (targetY - this.container.y) * 0.1 * deltaMS;
-        }
+        // Get target's world position (center)
+        const bounds = this.target.getBounds(); // Use getBounds() instead of getLocalBounds()
+        const targetWorldX = bounds.x + bounds.width / 2;
+        const targetWorldY = bounds.y + bounds.height / 2;
+
+        // Calculate desired container position to center the target on screen
+        const screenCenterX = window.innerWidth / 2;
+        const screenCenterY = window.innerHeight / 2;
+
+        const desiredX = screenCenterX - targetWorldX;
+        const desiredY = screenCenterY - targetWorldY;
+
+        // Apply smooth follow
+        this.container.x += (desiredX - this.container.x) * lerpSpeed * delta;
+        this.container.y += (desiredY - this.container.y) * lerpSpeed * delta;
     }
 
     private onMouseDown = (e: MouseEvent) => {

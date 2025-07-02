@@ -39,7 +39,6 @@ export class Cell {
         this.x = cell.x;
         this.y = cell.y;
         this.type = cell.type;
-
         const cellSize = Engine.GridCellSize * Engine.GridUpscale;
         const snappedX = cell.x * cellSize;
         const snappedY = cell.y * cellSize;
@@ -69,11 +68,15 @@ export default class World {
     public cells: Cell[] = [];
 
     /**
+     * Precomputed array of walls.
+     */
+    public walls: Cell[] = [];
+    /**
      * Loads and exposes world from .bastion file
      * @param {string} mapFileURL
      * @returns {World}
      */
-    constructor(mapFileURL: string) {
+    public async init(mapFileURL: string) {
         if (!mapFileURL.endsWith('.bastion')) {
             console.error('Map loading error. URL does not end with .bastion');
             console.error('URL param: ' + mapFileURL);
@@ -92,22 +95,20 @@ export default class World {
         text.anchor.set(0.5, 0.5);
         Engine.app.stage.addChild(text);
 
-        fetch(mapFileURL)
-            .then((res) => res.arrayBuffer())
-            .then((content) => {
-                try {
-                    const uint8array = new Uint8Array(content);
-                    const decoded = BSON.deserialize(uint8array);
-                    const importCells: ExportCell[] = decoded.cells;
-                    importCells.forEach((c) => {
-                        this.cells.push(new Cell(c, this.container));
-                    });
-                    text.destroy();
-                } catch (e) {
-                    alert('Map load error. Check console.');
-                    console.error(e);
-                }
+        const content = await fetch(mapFileURL).then((res) => res.arrayBuffer());
+        try {
+            const uint8array = new Uint8Array(content);
+            const decoded = BSON.deserialize(uint8array);
+            const importCells: ExportCell[] = decoded.cells;
+            importCells.forEach((c) => {
+                this.cells.push(new Cell(c, this.container));
             });
+            text.destroy();
+        } catch (e) {
+            alert('Map load error. Check console.');
+            console.error(e);
+        }
+        this.walls = this.GetCellsByType(CellType.PlayerWall);
     }
     public GetCellsByType(type: CellType) {
         return this.cells.filter((c) => c.type == type);

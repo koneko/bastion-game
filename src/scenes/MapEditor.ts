@@ -146,7 +146,7 @@ export class MapEditor extends Scene {
     private cfgPlacingEnabled = false;
     private cfgShowCellType = false;
 
-    public init() {
+    public async init() {
         this.stage.addChild(this.mapContainer);
         this.camera.enableMousePanning(true);
         this.mapContainer.addChild(this.placementGrid.view);

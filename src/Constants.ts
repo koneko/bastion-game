@@ -3,7 +3,7 @@ import GuiObject from './classes/GuiObject';
 import Scene from './scenes/Scene';
 import { KeyboardManager } from './classes/game/managers/KeyboardManager';
 import { WorldTexturesEnum } from './GameAssets';
-import { Cell } from './classes/game/World';
+import World, { Cell } from './classes/game/World';
 import { Enemy } from './classes/game/Enemy';
 
 export enum CellType {
@@ -58,6 +58,8 @@ export class Engine {
     public static currentScene: Scene;
     public static latestCommit: string;
 
+    public static World: World;
+
     public static KeyboardManager: KeyboardManager;
 
     public static GridCellSize: number = 16;
@@ -81,12 +83,12 @@ export class Engine {
         Engine.currentScene.stage.removeChild(object.container);
     }
 
-    public static changeScene(newScene: Scene) {
+    public static async changeScene(newScene: Scene) {
         if (Engine.currentScene) {
             Engine.currentScene.destroy();
         }
         Engine.currentScene = newScene;
-        Engine.currentScene.init();
+        await Engine.currentScene.init();
     }
 
     public static createModal({ title = 'Modal Title', content = '', onClose = null } = {}) {

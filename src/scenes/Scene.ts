@@ -24,5 +24,5 @@ export default class Scene {
         return this._events;
     }
 
-    public init() {}
+    public async init() {}
 }

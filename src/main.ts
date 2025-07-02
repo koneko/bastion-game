@@ -78,10 +78,10 @@ import { TestingScene } from './scenes/TestingScene';
         Engine.MouseY = ((event.clientY - app.canvas.offsetTop) / app.canvas.offsetHeight) * 1080;
     });
     let params = new URLSearchParams(location.href);
-    if (params.entries().next().value[1] == 'editor') Engine.changeScene(new MapEditor());
-    else if (params.entries().next().value[1] == 'game') Engine.changeScene(new GameScene());
-    else if (params.entries().next().value[1] == 'test') Engine.changeScene(new TestingScene());
-    else Engine.changeScene(new StartScene());
+    if (params.entries().next().value[1] == 'editor') await Engine.changeScene(new MapEditor());
+    else if (params.entries().next().value[1] == 'game') await Engine.changeScene(new GameScene());
+    else if (params.entries().next().value[1] == 'test') await Engine.changeScene(new TestingScene());
+    else await Engine.changeScene(new StartScene());
     // if (Engine.latestCommit != 'DEVELOPMENT')
     //     window.onbeforeunload = () => {
     //         return 'You are about to leave.';

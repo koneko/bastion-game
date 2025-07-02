@@ -4,5 +4,5 @@ import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 
 export class GameScene extends Scene {
-    public init() {}
+    public async init() {}
 }

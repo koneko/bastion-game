@@ -5,7 +5,7 @@ import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 
 export class StartScene extends Scene {
-    public init() {
+    public async init() {
         const NewGameButton = {
             caption: 'MapEditor',
             rect: new PIXI.Rectangle(Engine.app.canvas.width / 2 - 300 / 2, 400 + 0 * 70, 300, 60),

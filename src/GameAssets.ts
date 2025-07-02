@@ -202,13 +202,15 @@ export default class GameAssets {
                 },
             });
             await spritesheet.parse();
-            data.animations.forEach((_, idx) => {
-                data.animations[idx].indexes.forEach((_, i) => {
-                    const texture = spritesheet.textures[i];
+            for (let idx = 0; idx < data.animations.length; idx++) {
+                const animation = data.animations[idx];
+                for (let index = 0; index < animation.indexes.length; index++) {
+                    const animationIndex = animation.indexes[index];
+                    const texture = spritesheet.textures[animationIndex];
                     texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
                     data.animations[idx].textures.push(texture);
-                });
-            });
+                }
+            }
             GameAssets.Characters.push(data);
             console.log('THIS CHARS', this.Characters[CharactersEnum.Soldier]);
         }
