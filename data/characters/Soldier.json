@@ -4,8 +4,14 @@
     "animations": [
         {
             "animationName": "idle",
-            "animationSpeed": 1,
+            "animationSpeed": 0.1,
             "indexes": [0, 1, 2, 3, 4, 5],
+            "textures": []
+        },
+        {
+            "animationName": "run",
+            "animationSpeed": 0.35,
+            "indexes": [9, 10, 11, 12, 13, 14, 15, 16],
             "textures": []
         }
     ]
