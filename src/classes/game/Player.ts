@@ -12,6 +12,10 @@ enum Directions {
     Right = 1,
     Down = 2,
     Up = 3,
+    LeftUp = 4,
+    LeftDown = 5,
+    RightUp = 6,
+    RightDown = 7,
 }
 
 export default class Player {
@@ -85,25 +89,40 @@ export default class Player {
         } else if (aDown && dDown) {
             x = 0;
         } else {
-            if (wDown) y -= this.moveSpeed * delta;
-            if (sDown) y += this.moveSpeed * delta;
-
-            if (aDown) x -= this.moveSpeed * delta;
-            if (dDown) x += this.moveSpeed * delta;
+            if (wDown) {
+                y -= this.moveSpeed * delta;
+                this.direction = Directions.Up;
+            }
+            if (sDown) {
+                y += this.moveSpeed * delta;
+                this.direction = Directions.Down;
+            }
+            if (aDown) {
+                x -= this.moveSpeed * delta;
+                this.direction = Directions.Left;
+            }
+            if (dDown) {
+                x += this.moveSpeed * delta;
+                this.direction = Directions.Right;
+            }
 
             const half = Math.round((this.moveSpeed / 1.5) * delta);
             if (wDown && aDown) {
                 x = -half;
                 y = -half;
+                this.direction = Directions.LeftUp;
             } else if (wDown && dDown) {
                 x = half;
                 y = -half;
+                this.direction = Directions.RightUp;
             } else if (dDown && sDown) {
                 x = half;
                 y = half;
+                this.direction = Directions.RightDown;
             } else if (aDown && sDown) {
                 x = -half;
                 y = half;
+                this.direction = Directions.LeftDown;
             }
 
             this.MovePlayer(x, y);
@@ -112,22 +131,16 @@ export default class Player {
             if (this.state == PlayerState.Run) this.changeState(PlayerState.Idle);
         } else {
             if (this.state == PlayerState.Idle) this.changeState(PlayerState.Run);
-            // console.log(x, y);
-            // console.log(wDown, aDown, sDown, dDown);
             if (x < 0) {
                 this.sprite.scale.x = -1;
                 this.facingRight = false;
-                // console.log('SHOULD ROTATE LEFT');
             } else if (x > 0) {
                 this.sprite.scale.x = 1;
                 this.facingRight = true;
-                // console.log('SHOULD ROTATE RIGHT');
             }
         }
         if (!this.stateChangeHandled) {
             this.sprite.stop();
-            // this.sprite.destroy();
-            // this.sprite = new PIXI.AnimatedSprite(this.character.animations[this.state].textures);
             this.sprite.textures = this.character.animations[this.state].textures;
             this.sprite.anchor.set(0.5, 0.5);
             this.container.addChild(this.sprite);
@@ -141,6 +154,5 @@ export default class Player {
     private changeState(state) {
         this.state = state;
         this.stateChangeHandled = false;
-        // console.log(this.state, this.stateChangeHandled);
     }
 }
