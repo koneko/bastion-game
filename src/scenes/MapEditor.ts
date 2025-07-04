@@ -88,7 +88,6 @@ export class PlacementGrid {
                 alignment: 0.5,
                 cap: 'butt',
                 join: 'miter',
-                pixelLine: true,
             });
         }
 
@@ -102,7 +101,6 @@ export class PlacementGrid {
                 alignment: 0.5,
                 cap: 'butt',
                 join: 'miter',
-                pixelLine: true,
             });
         }
 

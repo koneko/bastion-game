@@ -2,7 +2,8 @@ import * as PIXI from 'pixi.js';
 import { Engine } from '../../Constants';
 
 /**
- * A camera system with target following, zoom, and optional mouse panning.
+ * DO NOT USE OUTSIDE OF MapEditor.ts. INSTEAD USE PIXI-VIEWPORT.
+ * @deprecated
  */
 export class Camera {
     private container: PIXI.Container;

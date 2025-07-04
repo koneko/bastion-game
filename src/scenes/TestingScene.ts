@@ -8,7 +8,6 @@ import * as PIXI from 'pixi.js';
 
 export class TestingScene extends Scene {
     public World: World;
-    public Camera: Camera;
     public Player: Player;
 
     private ticker: PIXI.Ticker;
@@ -17,13 +16,10 @@ export class TestingScene extends Scene {
         await this.World.init('./data/maps/testing/map.bastion');
         Engine.World = this.World;
         this.Player = new Player(this.World.container, CharactersEnum.Soldier);
-        this.Camera = new Camera(this.World.container);
-        this.Camera.setZoom(2.5);
-        this.Camera.enableZooming(false);
-        this.Camera.follow(this.Player.container);
+        this.World.container.follow(this.Player.container);
+        this.World.container.setZoom(3.5, true);
         const spawnCell = this.World.GetCellsByType(CellType.PlayerSpawn)[0];
         this.Player.SetCoordinates(spawnCell.x, spawnCell.y);
-        // this.Camera.follow(this.Player.container);
         let originMarker = new PIXI.Text({
             x: 0,
             y: 0,
@@ -51,6 +47,5 @@ export class TestingScene extends Scene {
     }
     public update(deltaTime) {
         this.Player.update(deltaTime);
-        this.Camera.update(deltaTime);
     }
 }
