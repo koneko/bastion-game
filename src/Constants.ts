@@ -12,7 +12,7 @@ export enum CellType {
     EnemySpawn = 2,
     PathingObjective = 3,
     CoreObjective = 4,
-    PlayerWall = 5,
+    Wall = 5,
     PlayerSpawn = 6,
 }
 

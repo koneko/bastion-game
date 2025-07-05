@@ -71,7 +71,11 @@ export default class World {
     /**
      * Precomputed array of walls.
      */
-    public walls: Cell[] = [];
+    public walls: Set<string> = new Set();
+    /**
+     * Precomputed array of walls.
+     */
+    public enemyWalls: Set<string> = new Set();
     /**
      * Loads and exposes world from .bastion file
      * @param {string} mapFileURL
@@ -116,7 +120,20 @@ export default class World {
             alert('Map load error. Check console.');
             console.error(e);
         }
-        this.walls = this.GetCellsByType(CellType.PlayerWall);
+        this.PopulateWallsVariable();
+    }
+    private PopulateWallsVariable() {
+        const wallTypes = [CellType.Wall, CellType.CoreObjective, CellType.EnemySpawn];
+        wallTypes.forEach((type, i) => {
+            const walls = this.GetCellsByType(type);
+            if (walls.length > 0) {
+                for (let idx = 0; idx < walls.length; idx++) {
+                    const wall = walls[idx];
+                    this.walls.add(`${wall.x},${wall.y}`);
+                    if (i == 0) this.enemyWalls.add(`${wall.x},${wall.y}`);
+                }
+            }
+        });
     }
     public GetCellsByType(type: CellType) {
         return this.cells.filter((c) => c.type == type);

@@ -24,7 +24,7 @@ export default class Player {
     public sprite: PIXI.AnimatedSprite;
     public state: PlayerState = PlayerState.Idle;
     public direction: Directions = 0;
-    public moveSpeed: number = 2.5;
+    public moveSpeed: number = 2.25;
     private facingRight: boolean = true;
     private character: Character;
     private stateChangeHandled: boolean = false;
@@ -46,37 +46,56 @@ export default class Player {
         });
     }
     public MovePlayer(dx: number, dy: number) {
-        const newX = Math.round(this.container.x + dx);
-        const newY = Math.round(this.container.y + dy);
-        if (this.CollidesWithWall(newX, newY)) return;
-        this.container.x = newX;
-        this.container.y = newY;
+        const nextX = Math.round(this.container.x + dx);
+        const nextY = Math.round(this.container.y + dy);
+
+        // Try horizontal move first
+        if (!this.CollidesWithWall(nextX, this.container.y)) {
+            this.container.x = nextX;
+        }
+
+        // Then try vertical move separately
+        if (!this.CollidesWithWall(this.container.x, nextY)) {
+            this.container.y = nextY;
+        }
     }
+
     public CollidesWithWall(x: number, y: number): boolean {
         const cellSize = Engine.GridCellSize * Engine.GridUpscale;
 
-        // Calculate center of the object
-        const centerX = x;
-        const centerY = y;
-        const cellX = Math.floor(centerX / cellSize);
-        const cellY = Math.floor(centerY / cellSize);
+        // mess with this a little bit. original uses this.container.width / 2 btw
+        const halfWidth = this.container.width / 10;
+        const halfHeight = this.container.height / 10;
 
-        // Check if that cell contains a wall
-        for (const wall of Engine.World.walls) {
-            if (wall.x === cellX && wall.y === cellY) {
-                return true; // Collision!
+        const left = x - halfWidth;
+        const right = x + halfWidth;
+        const top = y - halfHeight;
+        const bottom = y + halfHeight;
+
+        const startX = Math.floor(left / cellSize);
+        const endX = Math.floor(right / cellSize);
+        const startY = Math.floor(top / cellSize);
+        const endY = Math.floor(bottom / cellSize);
+
+        const wallSet = Engine.World.walls;
+
+        for (let cx = startX; cx <= endX; cx++) {
+            for (let cy = startY; cy <= endY; cy++) {
+                if (wallSet.has(`${cx},${cy}`)) {
+                    return true;
+                }
             }
         }
 
         return false;
     }
+
     public SetCoordinates(x: number, y: number) {
         const cellSize = Engine.GridCellSize * Engine.GridUpscale;
         this.container.x = x * cellSize + cellSize / 2;
         this.container.y = y * cellSize + cellSize / 2;
     }
-
-    public update(delta) {
+    public update(delta: number) {
         const wDown = this.keysDown.KeyW;
         const aDown = this.keysDown.KeyA;
         const sDown = this.keysDown.KeyS;
@@ -84,49 +103,32 @@ export default class Player {
 
         let x = 0;
         let y = 0;
-        if (wDown && sDown) {
-            y = 0;
-        } else if (aDown && dDown) {
-            x = 0;
-        } else {
-            if (wDown) {
-                y -= this.moveSpeed * delta;
-                this.direction = Directions.Up;
-            }
-            if (sDown) {
-                y += this.moveSpeed * delta;
-                this.direction = Directions.Down;
-            }
-            if (aDown) {
-                x -= this.moveSpeed * delta;
-                this.direction = Directions.Left;
-            }
-            if (dDown) {
-                x += this.moveSpeed * delta;
-                this.direction = Directions.Right;
-            }
 
-            const half = Math.round((this.moveSpeed / 1.5) * delta);
-            if (wDown && aDown) {
-                x = -half;
-                y = -half;
-                this.direction = Directions.LeftUp;
-            } else if (wDown && dDown) {
-                x = half;
-                y = -half;
-                this.direction = Directions.RightUp;
-            } else if (dDown && sDown) {
-                x = half;
-                y = half;
-                this.direction = Directions.RightDown;
-            } else if (aDown && sDown) {
-                x = -half;
-                y = half;
-                this.direction = Directions.LeftDown;
-            }
+        // Raw direction input
+        if (wDown) y -= 1;
+        if (sDown) y += 1;
+        if (aDown) x -= 1;
+        if (dDown) x += 1;
 
+        // Normalize if moving diagonally or non-0
+        if (x !== 0 || y !== 0) {
+            const length = Math.hypot(x, y); // Equivalent to sqrt(x*x + y*y)
+            x = (x / length) * this.moveSpeed * delta;
+            y = (y / length) * this.moveSpeed * delta;
+
+            // Set facing direction (optional – pick one dominant axis or keep diagonal)
+            if (x > 0 && y < 0) this.direction = Directions.RightUp;
+            else if (x > 0 && y > 0) this.direction = Directions.RightDown;
+            else if (x < 0 && y < 0) this.direction = Directions.LeftUp;
+            else if (x < 0 && y > 0) this.direction = Directions.LeftDown;
+            else if (x > 0) this.direction = Directions.Right;
+            else if (x < 0) this.direction = Directions.Left;
+            else if (y < 0) this.direction = Directions.Up;
+            else if (y > 0) this.direction = Directions.Down;
+            console.log(Directions[this.direction]);
             this.MovePlayer(x, y);
         }
+
         if (x == 0 && y == 0) {
             if (this.state == PlayerState.Run) this.changeState(PlayerState.Idle);
         } else {
@@ -139,6 +141,8 @@ export default class Player {
                 this.facingRight = true;
             }
         }
+
+        // Handles changing animation.
         if (!this.stateChangeHandled) {
             this.sprite.stop();
             this.sprite.textures = this.character.animations[this.state].textures;
