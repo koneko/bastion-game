@@ -1,20 +1,27 @@
-import { CellType, Engine } from '../Constants';
+import { CellType, Engine, GameMap } from '../Constants';
 import GameAssets, { CharactersEnum } from '../GameAssets';
-import { Camera } from '../classes/game/Camera';
+import { Enemy } from '../classes/game/Enemy';
 import Player from '../classes/game/Player';
 import World from '../classes/game/World';
+import EnemyManager from '../classes/game/managers/EnemyManager';
 import Scene from './Scene';
 import * as PIXI from 'pixi.js';
 
 export class TestingScene extends Scene {
     public World: World;
     public Player: Player;
+    public Map: GameMap;
+    public EnemyManager: EnemyManager;
 
     private ticker: PIXI.Ticker;
     public async init() {
+        const mapName = 'testing';
         this.World = new World();
-        await this.World.init('./data/maps/testing/map.bastion');
+        await this.World.init(`./data/maps/${mapName}/map.bastion`);
+        this.Map = await fetch(`./data/maps/${mapName}/data.json`).then((res) => res.json());
+        this.EnemyManager = new EnemyManager(this.Map.paths);
         Engine.World = this.World;
+        Engine.EnemyManager;
         this.Player = new Player(this.World.container, CharactersEnum.Soldier);
         this.World.container.follow(this.Player.container);
         this.World.container.setZoom(3.5, true);

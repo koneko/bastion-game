@@ -19,6 +19,7 @@ export enum WorldTexturesEnum {
 
 export enum CharactersEnum {
     Soldier = 0,
+    Orc = 1,
 }
 
 export type Character = {

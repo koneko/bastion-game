@@ -2,9 +2,10 @@ import * as PIXI from 'pixi.js';
 import GuiObject from './classes/GuiObject';
 import Scene from './scenes/Scene';
 import { KeyboardManager } from './classes/game/managers/KeyboardManager';
-import { WorldTexturesEnum } from './GameAssets';
+import { WorldTexturesEnum, CharactersEnum } from './GameAssets';
 import World, { Cell } from './classes/game/World';
 import { Enemy } from './classes/game/Enemy';
+import EnemyManager from './classes/game/managers/EnemyManager';
 
 export enum CellType {
     Build = 0,
@@ -16,24 +17,44 @@ export enum CellType {
     PlayerSpawn = 6,
 }
 
-export type Path = {
-    cells: Cell[];
+/**
+ * Name this the same as its respective entry in {@link CharactersEnum}.
+ */
+export enum EnemyType {
+    Orc = 0,
+}
+
+/**
+ * First point in path should be CellType.EnemySpawn for consistency.
+ */
+export type Path = PIXI.Point[];
+
+/**
+ * Approximate ratio is 0.00 - 1.00.
+ */
+export type EnemyInformation = {
+    approximateRatio: number;
+    enemyType: EnemyType;
 };
 
 export type Wave = {
     enemyCount: Enemy[];
+    enemyInformation: EnemyInformation[];
 };
 
 export enum Difficulty {
     Easy = 0,
 }
 
-export type Map = {
+/**
+ * Reference to /data/maps/[name]/data.json.
+ * Game automatically pulls respective map.bastion file.
+ */
+export type GameMap = {
     name: string;
     difficulties: Difficulty[];
     waves: Wave[];
     paths: Path[];
-    world: Cell[];
 };
 
 export type ExportProp = {
@@ -58,7 +79,9 @@ export class Engine {
     public static currentScene: Scene;
     public static latestCommit: string;
 
+    // Game will dynamically update these references to singletons.
     public static World: World;
+    public static EnemyManager: EnemyManager;
 
     public static KeyboardManager: KeyboardManager;
 

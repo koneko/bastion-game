@@ -25,7 +25,7 @@ export default class Player {
     public state: PlayerState = PlayerState.Idle;
     public direction: Directions = 0;
     public moveSpeed: number = 2.25;
-    private facingRight: boolean = true;
+    private spriteFacingRight: boolean = true;
     private character: Character;
     private stateChangeHandled: boolean = false;
     private keysDown = { KeyW: false, KeyA: false, KeyS: false, KeyD: false };
@@ -125,7 +125,6 @@ export default class Player {
             else if (x < 0) this.direction = Directions.Left;
             else if (y < 0) this.direction = Directions.Up;
             else if (y > 0) this.direction = Directions.Down;
-            console.log(Directions[this.direction]);
             this.MovePlayer(x, y);
         }
 
@@ -135,10 +134,10 @@ export default class Player {
             if (this.state == PlayerState.Idle) this.changeState(PlayerState.Run);
             if (x < 0) {
                 this.sprite.scale.x = -1;
-                this.facingRight = false;
+                this.spriteFacingRight = false;
             } else if (x > 0) {
                 this.sprite.scale.x = 1;
-                this.facingRight = true;
+                this.spriteFacingRight = true;
             }
         }
 
@@ -148,7 +147,7 @@ export default class Player {
             this.sprite.textures = this.character.animations[this.state].textures;
             this.sprite.anchor.set(0.5, 0.5);
             this.container.addChild(this.sprite);
-            if (!this.facingRight) this.sprite.scale.x = -1;
+            if (!this.spriteFacingRight) this.sprite.scale.x = -1;
             this.sprite.animationSpeed = this.character.animations[this.state].animationSpeed;
             this.sprite.play();
             this.stateChangeHandled = true;

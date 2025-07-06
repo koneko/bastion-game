@@ -15,7 +15,7 @@ ai.moveTo(320, 256);
 ai.update();
 ```
  */
-class PathfindingAI {
+export default class PathfindingAI {
     public position: PIXI.Point;
     public sprite: PIXI.AnimatedSprite;
     private path: PIXI.Point[] = [];
